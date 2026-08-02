@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+# One shared popup at a time: a repeated click closes it; another control
+# replaces it. These are regular Wayland windows, centred by Hyprland.
+set -eu
+
+kind=${1:?Usage: control-panel [audio|wifi|bluetooth|calendar]}
+config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
+panel="$config_home/waybar/scripts/control-panel.py"
+
+if pgrep -f "$panel $kind" >/dev/null 2>&1; then
+  pkill -f "$panel $kind" || true
+  exit 0
+fi
+
+pkill -f "$panel" || true
+export GDK_BACKEND=wayland
+exec "$panel" "$kind"

@@ -1,0 +1,34 @@
+#!/usr/bin/env sh
+set -eu
+
+menu() { fuzzel --dmenu --prompt='Wi-Fi: ' --lines=10; }
+password() { fuzzel --dmenu --password --prompt='Password: ' --lines=0; }
+
+choice=$(
+  {
+    printf '%s\n' '󰤨  Available networks'
+    printf '%s\n' '󰘂  Join hidden network'
+    if [ "$(nmcli radio wifi)" = 'enabled' ]; then
+      printf '%s\n' '󰤮  Turn Wi-Fi off'
+    else
+      printf '%s\n' '󰤨  Turn Wi-Fi on'
+    fi
+  } | menu
+) || exit 0
+
+case "$choice" in
+  '󰘂  Join hidden network')
+    ssid=$(fuzzel --dmenu --prompt='Hidden Wi-Fi name: ' --lines=0 </dev/null) || exit 0
+    [ -n "$ssid" ] || exit 0
+    key=$(password </dev/null) || exit 0
+    if [ -n "$key" ]; then nmcli device wifi connect "$ssid" password "$key" hidden yes; else nmcli device wifi connect "$ssid" hidden yes; fi
+    ;;
+  '󰤮  Turn Wi-Fi off') nmcli radio wifi off ;;
+  '󰤨  Turn Wi-Fi on') nmcli radio wifi on ;;
+  '󰤨  Available networks')
+    ssid=$(nmcli -g SSID device wifi list | awk 'NF && !seen[$0]++' | fuzzel --dmenu --prompt='Connect to: ' --lines=10) || exit 0
+    [ -n "$ssid" ] || exit 0
+    key=$(password </dev/null) || exit 0
+    if [ -n "$key" ]; then nmcli device wifi connect "$ssid" password "$key"; else nmcli device wifi connect "$ssid"; fi
+    ;;
+esac

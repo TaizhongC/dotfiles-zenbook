@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+set -eu
+
+month=${1:-$(date +%Y-%m-01)}
+calendar=$(cal -m -h "$month")
+choice=$(
+  {
+    printf '%s\n' "$calendar"
+    printf '%s\n' '‹  Previous month'
+    printf '%s\n' '●  Today'
+    printf '%s\n' 'Next month  ›'
+  } | fuzzel --dmenu --prompt='Calendar: ' --lines=12 --no-sort
+) || exit 0
+
+case "$choice" in
+  '‹  Previous month') exec "$0" "$(date -d "$month -1 month" +%Y-%m-01)" ;;
+  '●  Today') exec "$0" "$(date +%Y-%m-01)" ;;
+  'Next month  ›') exec "$0" "$(date -d "$month +1 month" +%Y-%m-01)" ;;
+esac

@@ -16,4 +16,10 @@ return function()
     move = "20 monitor_h-120",
     float = true,
   })
+  hl.window_rule({
+    name = "center-waybar-control-panels",
+    match = { title = "^waybar-control-panel-.+$" },
+    float = true,
+    center = true,
+  })
 end

@@ -1,86 +1,9 @@
+// Keep the bar layout small; module definitions live in modules/.
 {
-  "layer": "top",
-  "position": "top",
-  "height": 36,
-  "margin-left": 4,
-  "margin-right": 4,
-  "spacing": 6,
-  "modules-left": ["temperature", "cpu", "custom/gpu", "memory"],
-  "modules-center": ["hyprland/workspaces"],
-  "modules-right": ["custom/audio-status", "pulseaudio#microphone", "network", "bluetooth", "battery", "clock", "tray", "custom/notifications"],
-
-  "temperature": { "format": " {temperatureC}°C", "critical-threshold": 85, "tooltip": false },
-  "cpu": { "format": " {usage}%", "interval": 2, "tooltip": false },
-  "custom/gpu": {
-    "exec": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/gpu-usage\"'",
-    "return-type": "json",
-    "interval": 2,
-    "tooltip": true
-  },
-  "memory": { "format": "󰍛 {used:.1f}G/{total:.1f}G", "tooltip": false },
-
-  "hyprland/workspaces": {
-    "format": "{icon} {windows}",
-    "on-click": "activate",
-    "persistent-workspaces": { "*": 5 },
-    "window-rewrite-default": "󰊠",
-    "window-rewrite": {
-      "kitty": "󰆍",
-      "VSCodium": "󰨞",
-      "codium": "󰨞",
-      "code": "󰨞",
-      "zen": "󰖟",
-      "zen-browser": "󰖟",
-      "firefox": "",
-      "thunar": "",
-      "yazi": "󰇥",
-      "imv": "󰄄",
-      "swappy": "󰄄",
-      "zathura": "󰈦",
-      "vlc": "󰕼",
-      "mpv": "󰕼",
-      "pavucontrol": "󱕂",
-      "blueman-manager": "",
-      "nm-connection-editor": "󰐻"
-    },
-    "format-icons": { "active": "󰮯", "special": "󱁂", "default": "󰊠", "urgent": "󰧵", "empty": "" },
-    "show-special": true,
-    "all-outputs": true
-  },
-
-  "custom/audio-status": {
-    "exec": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/audio-status\"'",
-    "return-type": "json",
-    "interval": 1,
-    "format": "{}",
-    "tooltip": false,
-    "on-click": "swaync-client -t -sw"
-  },
-  "pulseaudio#microphone": { "format": "{format_source}", "format-source": "", "format-source-muted": "" },
-  "network": {
-    "format-wifi": "{icon}", "format-ethernet": "", "format-disconnected": "󰤣", "format-disabled": "󰤮",
-    "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
-    "align": 0.5,
-    "justify": "center",
-    "min-length": 1,
-    "tooltip-format-wifi": "{essid} ({signalStrength}%)\n{ipaddr}",
-    "tooltip-format-ethernet": "{ifname} ({ipaddr})",
-    "on-click": "swaync-client -t -sw"
-  },
-  "bluetooth": { "format": "󰂯", "format-connected": "󰂱", "format-disabled": "󰂲", "on-click": "swaync-client -t -sw" },
-
-  "battery": {
-    "interval": 60,
-    "states": { "warning": 30, "critical": 15 },
-    "format": "{icon} {capacity}%", "format-charging": "󱐌 {capacity}%",
-    "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
-  },
-  "clock": { "format": "{:%A %d/%m/%Y   %H:%M}", "tooltip-format": "<big>{:%B %Y}</big>\n<tt><small>{calendar}</small></tt>" },
-  "tray": { "icon-size": 16, "spacing": 8 },
-  "custom/notifications": {
-    "exec": "swaync-client -swb", "return-type": "json", "interval": 2,
-    "format": "{icon}", "tooltip": false,
-    "format-icons": { "notification": "󱅫", "none": "󰏖", "dnd-notification": "󰂠", "dnd-none": "󰪓" },
-    "on-click": "swaync-client -t -sw", "on-click-right": "swaync-client -d -sw"
-  }
+  "include": [
+    "~/.config/waybar/modules/layout.jsonc",
+    "~/.config/waybar/modules/system.jsonc",
+    "~/.config/waybar/modules/workspaces.jsonc",
+    "~/.config/waybar/modules/right.jsonc"
+  ]
 }

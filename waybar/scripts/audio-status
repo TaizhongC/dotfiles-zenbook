@@ -1,5 +1,12 @@
 #!/usr/bin/env sh
 status=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null) || exit 0
-case "$status" in *MUTED*) icon='󰖁' ;; *) icon='󰕾' ;; esac
-volume=$(printf '%s\n' "$status" | awk '{printf "%d", $2 * 100}')
-printf '{"text":"%s %s%%","class":"audio"}\n' "$icon" "$volume"
+case "$status" in
+  *MUTED*)
+    volume=$(printf '%s\n' "$status" | awk '{printf "%d", $2 * 100}')
+    printf '{"text":"󰖁 %s%%","class":"muted"}\n' "$volume"
+    ;;
+  *)
+    volume=$(printf '%s\n' "$status" | awk '{printf "%d", $2 * 100}')
+    printf '{"text":"󰕾 %s%%","class":"audio"}\n' "$volume"
+    ;;
+esac

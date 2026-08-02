@@ -25,3 +25,7 @@ pulse/
 yay/
 zen/
 dconf/
+
+# Machine-local application state and Python bytecode
+pavucontrol.ini
+waybar/scripts/__pycache__/

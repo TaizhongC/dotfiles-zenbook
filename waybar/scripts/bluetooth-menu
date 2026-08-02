@@ -1,0 +1,53 @@
+#!/usr/bin/env sh
+set -eu
+
+menu() { fuzzel --dmenu --prompt='Bluetooth: ' --lines=10; }
+state_home=${XDG_STATE_HOME:-"$HOME/.local/state"}
+remembered_devices="$state_home/waybar/bluetooth-connected-devices"
+
+if bluetoothctl show | awk '/Powered:/ { exit $2 != "yes" }'; then
+  power_action='󰂲  Turn Bluetooth off'
+else
+  power_action='󰂯  Turn Bluetooth on'
+fi
+
+choice=$(
+  {
+    printf '%s\n' '󰂯  Available devices'
+    printf '%s\n' '󰂰  Find new devices'
+    printf '%s\n' "$power_action"
+  } | menu
+) || exit 0
+
+case "$choice" in
+  '󰂰  Find new devices')
+    bluetoothctl --timeout 8 scan on >/dev/null 2>&1 || true
+    device=$(bluetoothctl devices | sed 's/^Device //' | fuzzel --dmenu --prompt='Connect: ' --lines=10) || exit 0
+    [ -n "$device" ] || exit 0
+    address=${device%% *}
+    bluetoothctl connect "$address"
+    ;;
+  '󰂯  Available devices')
+    device=$(bluetoothctl devices | sed 's/^Device //' | fuzzel --dmenu --prompt='Connect: ' --lines=10) || exit 0
+    [ -n "$device" ] || exit 0
+    address=${device%% *}
+    bluetoothctl connect "$address"
+    ;;
+  '󰂲  Turn Bluetooth off')
+    mkdir -p "$(dirname "$remembered_devices")"
+    bluetoothctl devices Connected | awk '{print $2}' > "$remembered_devices"
+    bluetoothctl power off
+    ;;
+  '󰂯  Turn Bluetooth on')
+    bluetoothctl power on
+    # BlueZ preserves paired devices; reconnect only the devices that were in
+    # use when this menu last powered Bluetooth off.
+    if [ -s "$remembered_devices" ]; then
+      sleep 1
+      while IFS= read -r address; do
+        [ -n "$address" ] && bluetoothctl connect "$address" || true
+      done < "$remembered_devices"
+      rm -f "$remembered_devices"
+    fi
+    ;;
+esac

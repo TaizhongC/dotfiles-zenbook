@@ -1,0 +1,18 @@
+{
+  "hyprland/workspaces": {
+    "format": "{icon} {windows}",
+    "on-click": "activate",
+    "persistent-workspaces": { "*": 5 },
+    "window-rewrite-default": "󰊠",
+    "window-rewrite": {
+      "kitty": "󰆍", "VSCodium": "󰨞", "codium": "󰨞", "code": "󰨞",
+      "zen": "󰖟", "zen-browser": "󰖟", "firefox": "", "thunar": "",
+      "yazi": "󰇥", "imv": "󰄄", "swappy": "󰄄", "zathura": "󰈦",
+      "vlc": "󰕼", "mpv": "󰕼", "pavucontrol": "󱕂",
+      "blueman-manager": "", "nm-connection-editor": "󰐻"
+    },
+    "format-icons": { "active": "󰮯", "special": "󱁂", "default": "󰊠", "urgent": "󰧵", "empty": "" },
+    "show-special": true,
+    "all-outputs": true
+  }
+}

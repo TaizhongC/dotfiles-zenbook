@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Pavucontrol provides the actual interactive slider (and output-device controls).
+exec pavucontrol

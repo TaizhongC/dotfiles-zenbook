@@ -1,0 +1,38 @@
+{
+  "custom/audio-status": {
+    "exec": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/audio-status\"'",
+    "return-type": "json", "signal": 8, "format": "{}", "tooltip": false,
+    "on-click": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/audio-control\" mute'"
+  },
+  "custom/microphone-status": {
+    "exec": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/microphone-status\"'",
+    "return-type": "json", "signal": 8, "format": "{}", "tooltip": false,
+    "on-click": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/audio-control\" mic-mute'"
+  },
+  "network": {
+    "format-wifi": "{icon}", "format-ethernet": "", "format-disconnected": "󰤣", "format-disabled": "󰤮",
+    "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"], "align": 0.5, "justify": "center", "min-length": 1,
+    "tooltip-format-wifi": "{essid} ({signalStrength}%)\n{ipaddr}", "tooltip-format-ethernet": "{ifname} ({ipaddr})",
+    "on-click": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/control-panel\" wifi'"
+  },
+  "bluetooth": {
+    "format": "󰂯", "format-on": "󰂯", "format-off": "󰂲", "format-connected": "󰂱", "format-disabled": "󰂲", "tooltip": false,
+    "on-click": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/control-panel\" bluetooth'"
+  },
+  "battery": {
+    "interval": 60, "states": { "warning": 30, "critical": 15 },
+    "format": "{icon} {capacity}%", "format-charging": "󱐌 {capacity}%",
+    "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+  },
+  "clock": {
+    "format": "{:%A %d/%m/%Y   %H:%M}", "tooltip": false,
+    "on-click": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/control-panel\" calendar'"
+  },
+  "tray": { "icon-size": 16, "spacing": 8 },
+  "custom/notifications": {
+    "exec": "swaync-client -swb", "return-type": "json", "interval": 2,
+    "format": "{icon}", "tooltip": false,
+    "format-icons": { "notification": "󱅫", "none": "󰏖", "dnd-notification": "󰂠", "dnd-none": "󰪓" },
+    "on-click": "swaync-client -t -sw", "on-click-right": "swaync-client -d -sw"
+  }
+}

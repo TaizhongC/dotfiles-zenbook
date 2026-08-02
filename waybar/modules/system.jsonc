@@ -1,0 +1,11 @@
+{
+  "temperature": { "format": " {temperatureC}°C", "critical-threshold": 85, "tooltip": false },
+  "cpu": { "format": " {usage}%", "interval": 2, "tooltip": false },
+  "custom/gpu": {
+    "exec": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/gpu-usage\"'",
+    "return-type": "json",
+    "interval": 2,
+    "tooltip": true
+  },
+  "memory": { "format": "󰍛 {used:.1f}G/{total:.1f}G", "tooltip": false }
+}
