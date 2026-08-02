@@ -1,4 +1,5 @@
 {
+  "disk": { "path": "/", "format": "󰋊 {percentage_used}%", "interval": 30, "tooltip": false },
   "temperature": { "format": " {temperatureC}°C", "critical-threshold": 85, "tooltip": false },
   "cpu": { "format": " {usage}%", "interval": 2, "tooltip": false },
   "custom/gpu": {

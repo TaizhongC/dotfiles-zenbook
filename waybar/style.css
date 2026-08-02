@@ -11,7 +11,7 @@
 window#waybar { background: transparent; color: @text; }
 tooltip { background: @surface; border: 1px solid @surface-highest; border-radius: 10px; color: @text; }
 
-#workspaces, #temperature, #cpu, #memory, #custom-gpu, #custom-audio-status,
+#workspaces, #disk, #temperature, #cpu, #memory, #custom-gpu, #custom-audio-status,
 #custom-microphone-status, #custom-input-language, #network, #bluetooth, #battery, #clock, #tray, #custom-notifications {
   background: @surface;
   border: none;
@@ -20,11 +20,11 @@ tooltip { background: @surface; border: 1px solid @surface-highest; border-radiu
   padding: 0 8px;
 }
 
-#temperature, #cpu, #memory, #custom-gpu { border-radius: 20px; }
-#temperature { margin-left: 5px; }
+#disk, #temperature, #cpu, #memory, #custom-gpu { border-radius: 20px; }
+#disk { margin-left: 5px; }
 #memory { margin-right: 5px; }
 
-#temperature, #cpu, #memory, #custom-gpu { color: @text-muted; }
+#disk, #temperature, #cpu, #memory, #custom-gpu { color: @text-muted; }
 #custom-gpu.unavailable { color: @text-dim; }
 #temperature.critical, #battery.critical:not(.charging) { color: @error; }
 #battery.warning:not(.charging) { color: @warning; }
