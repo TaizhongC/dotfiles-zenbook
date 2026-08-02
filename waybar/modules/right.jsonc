@@ -30,9 +30,8 @@
   },
   "tray": { "icon-size": 16, "spacing": 8 },
   "custom/notifications": {
-    "exec": "swaync-client -swb", "return-type": "json", "interval": 2,
-    "format": "{icon}", "tooltip": false,
-    "format-icons": { "notification": "󱅫", "none": "󰏖", "dnd-notification": "󰂠", "dnd-none": "󰪓" },
+    "exec": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/notification-status\"'", "return-type": "json", "interval": 2,
+    "format": "{}", "escape": false, "tooltip": false,
     "on-click": "swaync-client -t -sw", "on-click-right": "swaync-client -d -sw"
   }
 }

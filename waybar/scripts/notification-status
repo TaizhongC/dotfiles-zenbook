@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+# Keep the Waybar icon responsive even while SwayNC is restarting.
+config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
+colour=$(awk '$2 == "primary" { print $3; exit }' "$config_home/waybar/colors.css" 2>/dev/null)
+colour=${colour%;}
+colour=${colour:-#88d1ec}
+count=$(timeout 0.5s swaync-client -c -sw 2>/dev/null || printf '0')
+dnd=$(timeout 0.5s swaync-client -D -sw 2>/dev/null || printf 'false')
+
+emit() {
+  printf '{"text":"<span foreground=\\"%s\\">%s</span>","class":"%s"}\n' "$colour" "$1" "$2"
+}
+
+case "$dnd" in
+  true) emit '󰖔' 'dnd' ;;
+  *)
+    case "$count" in
+      0) emit '󰽤' 'empty' ;;
+      *) emit '󰽢' 'unread' ;;
+    esac
+    ;;
+esac

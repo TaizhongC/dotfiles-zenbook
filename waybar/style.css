@@ -51,8 +51,8 @@ tooltip { background: @surface; border: 1px solid @surface-highest; border-radiu
 #bluetooth { color: @warning; }
 #network { min-width: 18px; padding-left: 8px; padding-right: 8px; }
 #clock { color: @text; margin-right: 0; }
-#tray { color: @text-muted; margin-left: 0; margin-right: 0; }
-#custom-notifications { color: @error; margin-right: 0; }
+#tray { color: @text-dim; margin-left: 0; margin-right: 0; }
+#custom-notifications, #custom-notifications label { color: @text-muted; margin-right: 0; }
 #custom-audio-status.muted, #custom-microphone-status.muted { color: @error; }
 #network.disconnected, #network.disabled, #bluetooth.off, #bluetooth.disabled { color: @text-muted; }
 

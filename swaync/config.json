@@ -1,0 +1,12 @@
+{
+  "ignore-gtk-theme": true,
+  "cssPriority": "user",
+  "control-center-positionX": "center",
+  "control-center-positionY": "center",
+  "control-center-width": 560,
+  "control-center-height": 580,
+  "control-center-layer": "overlay",
+  "control-center-exclusive-zone": false,
+  "fit-to-screen": false,
+  "widgets": ["title", "dnd", "notifications"]
+}
