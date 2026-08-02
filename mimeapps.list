@@ -21,6 +21,7 @@ video/x-matroska=vlc.desktop
 video/webm=vlc.desktop
 video/quicktime=vlc.desktop
 video/x-msvideo=vlc.desktop
+application/zip=userapp-unzip -l-33S6S3.desktop
 
 [Added Associations]
 x-scheme-handler/http=zen.desktop;
@@ -45,3 +46,4 @@ video/x-matroska=vlc.desktop;
 video/webm=vlc.desktop;
 video/quicktime=vlc.desktop;
 video/x-msvideo=vlc.desktop;
+application/zip=userapp-unzip -l-33S6S3.desktop;

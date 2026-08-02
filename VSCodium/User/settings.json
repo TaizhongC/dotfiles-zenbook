@@ -1,6 +1,6 @@
 {
   "C_Cpp.intelliSenseEngine": "disabled",
-  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.colorTheme": "Dark Modern",
   "workbench.colorCustomizations": {
     "editor.background": "#1b2023",
     "editorGutter.background": "#1b2023",
@@ -50,5 +50,6 @@
   "editor.cursorSurroundingLines": 8,
   "editor.cursorSurroundingLinesStyle": "all",
   "editor.stickyScroll.enabled": false,
-  "editor.unicodeHighlight.includeStrings": false
+  "editor.unicodeHighlight.includeStrings": false,
+  "workbench.startupEditor": "none"
 }

@@ -27,7 +27,13 @@ return function()
     dwindle = { preserve_split = true },
     master = { new_status = "master" },
     scrolling = { fullscreen_on_one_column = true },
-    misc = { force_default_wallpaper = 0, disable_hyprland_logo = true },
+    -- Fullscreen is implemented as a compositor-driven resize.  Hyprland
+    -- skips that animation unless manual resizes are explicitly enabled.
+    misc = {
+      force_default_wallpaper = 0,
+      disable_hyprland_logo = true,
+      animate_manual_resizes = true,
+    },
   })
 
   hl.curve("easeOutQuint", { type = "bezier", points = { { 0.23, 1 }, { 0.32, 1 } } })
@@ -35,20 +41,20 @@ return function()
   hl.curve("linear", { type = "bezier", points = { { 0, 0 }, { 1, 1 } } })
   hl.curve("almostLinear", { type = "bezier", points = { { 0.5, 0.5 }, { 0.75, 1 } } })
   hl.curve("quick", { type = "bezier", points = { { 0.15, 0 }, { 0.1, 1 } } })
-  -- A firmer spring keeps the visual style responsive on this high-resolution panel.
-  hl.curve("easy", { type = "spring", mass = 1, stiffness = 180, dampening = 22 })
 
   hl.animation({ leaf = "global", enabled = true, speed = 10, bezier = "default" })
   hl.animation({ leaf = "border", enabled = true, speed = 5.39, bezier = "easeOutQuint" })
-  hl.animation({ leaf = "windows", enabled = true, speed = 4.79, spring = "easy" })
+  -- Fullscreen changes (Super+F) use the regular window animation.  A slide
+  -- transition makes the change visible without the spring overshoot/bounce.
+  hl.animation({ leaf = "windows", enabled = true, speed = 4.79, bezier = "easeInOutCubic", style = "slide" })
   -- Keep window mapping to one subtle visual effect.  Combining a scale and
   -- opacity fade can make a newly mapped client look like it flashes.
   hl.animation({ leaf = "windowsIn", enabled = true, speed = 2.5, bezier = "easeOutQuint", style = "popin 90%" })
   hl.animation({ leaf = "windowsOut", enabled = true, speed = 2, bezier = "easeInOutCubic", style = "popin 90%" })
-  -- Do not animate tiled reflow, resizing or dragging.  Many clients redraw
-  -- text only after their final geometry is committed, which otherwise makes
-  -- the old buffer visibly stretch during the animation.
-  hl.animation({ leaf = "windowsMove", enabled = false })
+  -- Fullscreen toggles are geometry changes, so they use windowsMove rather
+  -- than the parent windows animation.  Keep it enabled for a smooth
+  -- fullscreen transition while retaining the same timing and easing.
+  hl.animation({ leaf = "windowsMove", enabled = true, speed = 2.8, bezier = "easeInOutCubic", style = "slide" })
   hl.animation({ leaf = "fadeIn", enabled = false })
   hl.animation({ leaf = "fadeOut", enabled = false })
   hl.animation({ leaf = "fade", enabled = true, speed = 3.03, bezier = "quick" })

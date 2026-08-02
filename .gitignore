@@ -4,11 +4,13 @@ hypr/hyprlock.conf
 kitty/theme.conf
 starship.toml
 swaync/theme.css
+swaync/style.css
 waybar/colors.css
 fuzzel/fuzzel.ini
 ricing/generated/
 ricing/__pycache__/
 hypr/hyprland.lua.before-dotfiles-restore
+yazi/theme.toml
 
 # Application caches, state, credentials, and per-machine data
 # VSCodium: retain only portable User settings

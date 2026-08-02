@@ -1,0 +1,11 @@
+# Keep the default open rules for files (including the existing editor
+# behavior), but open a directory in a new Kitty terminal when `o` is pressed.
+[opener]
+terminal = [
+  { run = "kitty --directory %s1", orphan = true, desc = "Open terminal here", for = "unix" },
+]
+
+[open]
+prepend_rules = [
+  { url = "*/", use = "terminal" },
+]
