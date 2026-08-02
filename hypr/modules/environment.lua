@@ -16,6 +16,14 @@ return function()
   hl.env("XCURSOR_THEME", cursor_theme)
   hl.env("XCURSOR_SIZE", "24")
   hl.env("HYPRCURSOR_SIZE", "24")
+  -- Make Fcitx5 available to apps launched by Hyprland (including desktop
+  -- entries), rather than only to programs started from an interactive shell.
+  hl.env("GTK_IM_MODULE", "fcitx")
+  hl.env("QT_IM_MODULE", "fcitx")
+  hl.env("XMODIFIERS", "@im=fcitx")
+  hl.env("SDL_IM_MODULE", "fcitx")
+  -- GLFW uses the IBus protocol for input methods; Fcitx5 provides it.
+  hl.env("GLFW_IM_MODULE", "ibus")
   -- Desktop-entry launchers inherit Hyprland's environment, not the shell's.
   -- Include user helpers without embedding a username-specific path.
   if home then

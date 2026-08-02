@@ -28,6 +28,11 @@
     "format": "{:%A %d/%m/%Y   %H:%M}", "tooltip": false,
     "on-click": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/control-panel\" calendar'"
   },
+  "custom/input-language": {
+    "exec": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/input-language\"'",
+    "return-type": "json", "signal": 12, "format": "{}", "tooltip": false,
+    "on-click": "sh -c 'fcitx5-remote -t; pkill -RTMIN+12 waybar'"
+  },
   "tray": { "icon-size": 16, "spacing": 8 },
   "custom/notifications": {
     "exec": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/notification-status\"'", "return-type": "json", "interval": 2,

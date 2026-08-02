@@ -1,0 +1,17 @@
+#!/bin/sh
+# Fcitx5 reports 2 while its Chinese input method is active; inactive is the
+# normal UK keyboard.
+# Waybar can be started without the session-bus variable in its environment.
+# Fcitx5's per-user bus is nevertheless always at this standard location.
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+  DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+  export DBUS_SESSION_BUS_ADDRESS
+fi
+
+state=$(fcitx5-remote 2>/dev/null)
+
+if [ "$state" = 2 ]; then
+  printf '%s\n' '{"text":"zh"}'
+else
+  printf '%s\n' '{"text":"gb"}'
+fi

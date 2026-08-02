@@ -1,11 +1,11 @@
 {
   "layer": "top",
   "position": "top",
-  "height": 36,
+  "height": 38,
   "margin-left": 4,
   "margin-right": 4,
   "spacing": 6,
   "modules-left": ["temperature", "cpu", "custom/gpu", "memory", "battery"],
   "modules-center": ["hyprland/workspaces"],
-  "modules-right": ["custom/audio-status", "custom/microphone-status", "network", "bluetooth", "clock", "tray", "custom/notifications"]
+  "modules-right": ["custom/audio-status", "custom/microphone-status", "network", "bluetooth", "clock", "custom/input-language", "tray", "custom/notifications"]
 }

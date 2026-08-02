@@ -12,7 +12,7 @@ window#waybar { background: transparent; color: @text; }
 tooltip { background: @surface; border: 1px solid @surface-highest; border-radius: 10px; color: @text; }
 
 #workspaces, #temperature, #cpu, #memory, #custom-gpu, #custom-audio-status,
-#custom-microphone-status, #network, #bluetooth, #battery, #clock, #tray, #custom-notifications {
+#custom-microphone-status, #custom-input-language, #network, #bluetooth, #battery, #clock, #tray, #custom-notifications {
   background: @surface;
   border: none;
   border-radius: 20px;
@@ -57,11 +57,11 @@ tooltip { background: @surface; border: 1px solid @surface-highest; border-radiu
 #network.disconnected, #network.disabled, #bluetooth.off, #bluetooth.disabled { color: @text-muted; }
 
 /* Interactive controls on the right retain the pill shape, but respond clearly. */
-#custom-audio-status, #custom-microphone-status, #network, #bluetooth, #battery, #clock,
+#custom-audio-status, #custom-microphone-status, #custom-input-language, #network, #bluetooth, #battery, #clock,
 #tray, #custom-notifications {
   transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
-#custom-audio-status:hover, #custom-microphone-status:hover, #network:hover, #bluetooth:hover,
+#custom-audio-status:hover, #custom-microphone-status:hover, #custom-input-language:hover, #network:hover, #bluetooth:hover,
 #battery:hover, #clock:hover, #tray:hover, #custom-notifications:hover {
   background: @surface-highest;
   box-shadow: inset 0 0 0 1px @outline;
