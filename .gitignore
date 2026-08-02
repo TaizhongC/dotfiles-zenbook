@@ -5,6 +5,7 @@ kitty/theme.conf
 starship.toml
 swaync/theme.css
 waybar/colors.css
+fuzzel/fuzzel.ini
 ricing/generated/
 ricing/__pycache__/
 hypr/hyprland.lua.before-dotfiles-restore

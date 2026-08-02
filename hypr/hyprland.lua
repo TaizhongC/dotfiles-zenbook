@@ -13,6 +13,7 @@ end
 
 load_module("monitors")
 load_module("programs")
+load_module("environment")
 load_module("startup")
 load_module("appearance")
 load_module("input")

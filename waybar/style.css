@@ -11,22 +11,40 @@
 window#waybar { background: transparent; color: @text; }
 tooltip { background: @surface; border: 1px solid @surface-highest; border-radius: 10px; color: @text; }
 
-#workspaces, #temperature, #cpu, #memory, #custom-audio-status,
+#workspaces, #temperature, #cpu, #memory, #custom-gpu, #custom-audio-status,
 #pulseaudio, #network, #bluetooth, #battery, #clock, #tray, #custom-notifications {
   background: @surface;
-  border: 1px solid @outline;
-  border-radius: 8px;
-  margin: 5px 0;
+  border: none;
+  border-radius: 20px;
+  margin: 4px 0;
   padding: 0 8px;
 }
 
-#temperature, #cpu, #memory { color: @text-muted; }
+#temperature, #cpu, #memory, #custom-gpu { border-radius: 20px; }
+#temperature { margin-left: 5px; }
+#memory { margin-right: 5px; }
+
+#temperature, #cpu, #memory, #custom-gpu { color: @text-muted; }
+#custom-gpu.unavailable { color: @text-dim; }
 #temperature.critical, #battery.critical:not(.charging) { color: @error; }
 #battery.warning:not(.charging) { color: @warning; }
 #battery.charging { color: @success; }
-#workspaces button { color: @text-dim; padding: 0 5px; }
-#workspaces button.active { color: @primary; }
+#workspaces { margin: 4px 5px; padding: 6px; }
+#workspaces button {
+  min-width: 32px;
+  margin: 0 2px;
+  padding: 0 4px;
+  border-radius: 16px;
+  color: @secondary;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+#workspaces button.active { background: @primary; color: @background; margin: 0 2px; padding: 0 12px; }
+#workspaces button.empty { color: @text-dim; }
 #workspaces button.urgent { color: @error; }
+#workspaces button:hover { background: @surface-highest; color: @primary; }
+#workspaces button.active:hover { background: @primary; color: @background; }
+#workspaces button label:first-child { margin-right: 8px; }
+#workspaces button label:last-child { margin-left: 2px; }
 #custom-audio-status { color: @primary; }
 #network, #bluetooth { color: @secondary; }
 #network { min-width: 18px; padding-left: 8px; padding-right: 8px; }

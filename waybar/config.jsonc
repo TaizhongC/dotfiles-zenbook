@@ -1,22 +1,51 @@
 {
   "layer": "top",
   "position": "top",
-  "height": 38,
+  "height": 36,
   "margin-left": 4,
   "margin-right": 4,
   "spacing": 6,
-  "modules-left": ["temperature", "cpu", "memory"],
+  "modules-left": ["temperature", "cpu", "custom/gpu", "memory"],
   "modules-center": ["hyprland/workspaces"],
   "modules-right": ["custom/audio-status", "pulseaudio#microphone", "network", "bluetooth", "battery", "clock", "tray", "custom/notifications"],
 
   "temperature": { "format": " {temperatureC}°C", "critical-threshold": 85, "tooltip": false },
-  "cpu": { "format": " {usage}%", "tooltip": false },
+  "cpu": { "format": " {usage}%", "interval": 2, "tooltip": false },
+  "custom/gpu": {
+    "exec": "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/gpu-usage\"'",
+    "return-type": "json",
+    "interval": 2,
+    "tooltip": true
+  },
   "memory": { "format": "󰍛 {used:.1f}G/{total:.1f}G", "tooltip": false },
 
   "hyprland/workspaces": {
     "format": "{icon} {windows}",
     "on-click": "activate",
-    "format-icons": { "default": "", "active": "", "urgent": "" }
+    "persistent-workspaces": { "*": 5 },
+    "window-rewrite-default": "󰊠",
+    "window-rewrite": {
+      "kitty": "󰆍",
+      "VSCodium": "󰨞",
+      "codium": "󰨞",
+      "code": "󰨞",
+      "zen": "󰖟",
+      "zen-browser": "󰖟",
+      "firefox": "",
+      "thunar": "",
+      "yazi": "󰇥",
+      "imv": "󰄄",
+      "swappy": "󰄄",
+      "zathura": "󰈦",
+      "vlc": "󰕼",
+      "mpv": "󰕼",
+      "pavucontrol": "󱕂",
+      "blueman-manager": "",
+      "nm-connection-editor": "󰐻"
+    },
+    "format-icons": { "active": "󰮯", "special": "󱁂", "default": "󰊠", "urgent": "󰧵", "empty": "" },
+    "show-special": true,
+    "all-outputs": true
   },
 
   "custom/audio-status": {

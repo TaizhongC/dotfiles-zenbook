@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+# AMDGPU exposes current engine utilisation here.  Resolve the DRM card at
+# runtime so this also works when the card numbering changes between boots.
+for usage_file in /sys/class/drm/card*/device/gpu_busy_percent; do
+  [ -r "$usage_file" ] || continue
+  usage=$(cat "$usage_file")
+  printf '{"text":"󰢮 %s%%","tooltip":"GPU usage: %s%%"}\n' "$usage" "$usage"
+  exit 0
+done
+
+printf '%s\n' '{"text":"󰢮 --","tooltip":"GPU usage unavailable","class":"unavailable"}'

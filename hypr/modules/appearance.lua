@@ -41,10 +41,16 @@ return function()
   hl.animation({ leaf = "global", enabled = true, speed = 10, bezier = "default" })
   hl.animation({ leaf = "border", enabled = true, speed = 5.39, bezier = "easeOutQuint" })
   hl.animation({ leaf = "windows", enabled = true, speed = 4.79, spring = "easy" })
-  hl.animation({ leaf = "windowsIn", enabled = true, speed = 4.1, spring = "easy", style = "popin 87%" })
-  hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.49, bezier = "linear", style = "popin 87%" })
-  hl.animation({ leaf = "fadeIn", enabled = true, speed = 1.73, bezier = "almostLinear" })
-  hl.animation({ leaf = "fadeOut", enabled = true, speed = 1.46, bezier = "almostLinear" })
+  -- Keep window mapping to one subtle visual effect.  Combining a scale and
+  -- opacity fade can make a newly mapped client look like it flashes.
+  hl.animation({ leaf = "windowsIn", enabled = true, speed = 2.5, bezier = "easeOutQuint", style = "popin 90%" })
+  hl.animation({ leaf = "windowsOut", enabled = true, speed = 2, bezier = "easeInOutCubic", style = "popin 90%" })
+  -- Do not animate tiled reflow, resizing or dragging.  Many clients redraw
+  -- text only after their final geometry is committed, which otherwise makes
+  -- the old buffer visibly stretch during the animation.
+  hl.animation({ leaf = "windowsMove", enabled = false })
+  hl.animation({ leaf = "fadeIn", enabled = false })
+  hl.animation({ leaf = "fadeOut", enabled = false })
   hl.animation({ leaf = "fade", enabled = true, speed = 3.03, bezier = "quick" })
   hl.animation({ leaf = "layers", enabled = true, speed = 3.81, bezier = "easeOutQuint" })
   hl.animation({ leaf = "layersIn", enabled = true, speed = 4, bezier = "easeOutQuint", style = "fade" })
