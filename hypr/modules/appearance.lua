@@ -33,6 +33,8 @@ return function()
       force_default_wallpaper = 0,
       disable_hyprland_logo = true,
       animate_manual_resizes = true,
+      -- The internal panel supports Adaptive Sync from 48 to 120 Hz.
+      vrr = 1,
     },
   })
 
