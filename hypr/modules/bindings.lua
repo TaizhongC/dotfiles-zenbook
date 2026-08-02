@@ -7,7 +7,7 @@ return function(ctx)
   hl.bind(mod .. " + SPACE", hl.dsp.exec_cmd(ctx.menu))
   hl.bind(mod .. " + F", hl.dsp.window.fullscreen())
   hl.bind(mod .. " + T", hl.dsp.window.float({ action = "toggle" }))
-  hl.bind(mod .. " + P", hl.dsp.window.pseudo())
+  hl.bind(mod .. " + P", hl.dsp.exec_cmd("env GTK_THEME=Adwaita:dark nwg-displays"))
   hl.bind(mod .. " + V", hl.dsp.layout("togglesplit"))
 
   for _, direction in ipairs({ "left", "down", "up", "right" }) do
@@ -41,6 +41,9 @@ return function(ctx)
   hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
   hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
   hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
+  -- Laptop firmware varies: the display-switch key may be XF86Display or F7.
+  -- nwg-displays provides the GUI for extending, mirroring, and arranging outputs.
+  hl.bind("XF86Display", hl.dsp.exec_cmd("env GTK_THEME=Adwaita:dark nwg-displays"), { locked = true })
 
   hl.bind("PRINT", hl.dsp.exec_cmd("grim -g \"$(slurp)\" - | swappy -f -"))
   hl.bind("SHIFT + PRINT", hl.dsp.exec_cmd("grim - | swappy -f -"))

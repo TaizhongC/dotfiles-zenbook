@@ -1,0 +1,51 @@
+/* nwg-displays accents. The palette is generated alongside the Waybar theme. */
+@import url("../waybar/colors.css");
+
+#wrapper {
+  background: @background;
+}
+
+#output {
+  background: @surface-low;
+  border: 1px solid @outline;
+  border-radius: 10px;
+  color: @text;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+#output:hover {
+  background: @surface-high;
+  border-color: @primary;
+}
+
+#selected-output {
+  background: @primary-container;
+  border: 2px solid @primary;
+  border-radius: 10px;
+  color: @text;
+  text-shadow: none;
+  box-shadow: none;
+  font-weight: bold;
+}
+
+#inactive-output {
+  background: @surface-low;
+  border: 1px solid @outline;
+  border-radius: 10px;
+  color: @text-dim;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+#indicator {
+  background: @surface;
+  border: 2px solid @primary;
+  border-radius: 12px;
+  color: @text;
+}
+
+#indicator-label {
+  color: @primary;
+  font-size: 24px;
+}

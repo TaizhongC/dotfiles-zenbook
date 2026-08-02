@@ -22,4 +22,11 @@ return function()
     float = true,
     center = true,
   })
+  hl.window_rule({
+    name = "center-nwg-displays",
+    match = { class = "nwg-displays" },
+    float = true,
+    center = true,
+    size = "1000 700",
+  })
 end
