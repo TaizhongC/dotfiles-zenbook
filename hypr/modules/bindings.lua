@@ -7,7 +7,7 @@ return function(ctx)
   hl.bind(mod .. " + SPACE", hl.dsp.exec_cmd(ctx.menu))
   hl.bind(mod .. " + F", hl.dsp.window.fullscreen())
   hl.bind(mod .. " + T", hl.dsp.window.float({ action = "toggle" }))
-  hl.bind(mod .. " + P", hl.dsp.exec_cmd("env GTK_THEME=Adwaita:dark nwg-displays"))
+  hl.bind("XF86Launch1", hl.dsp.exec_cmd("env GTK_THEME=Adwaita:dark nwg-displays"), { locked = true })
   hl.bind(mod .. " + V", hl.dsp.layout("togglesplit"))
 
   for _, direction in ipairs({ "left", "down", "up", "right" }) do
