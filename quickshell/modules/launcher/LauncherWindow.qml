@@ -149,6 +149,7 @@ PanelWindow {
 
     function openLauncher() {
         shouldShow = true
+        searchField.text = ""
         query = ""
         selectedIndex = 0
         searchField.forceActiveFocus()
@@ -190,6 +191,7 @@ PanelWindow {
 
     onShouldShowChanged: {
         if (shouldShow) {
+            searchField.text = ""
             query = ""
             selectedIndex = 0
             Qt.callLater(() => searchField.forceActiveFocus())
