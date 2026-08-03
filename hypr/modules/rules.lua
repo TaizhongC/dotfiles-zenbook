@@ -17,12 +17,6 @@ return function()
     float = true,
   })
   hl.window_rule({
-    name = "center-waybar-control-panels",
-    match = { title = "^waybar-control-panel-.+$" },
-    float = true,
-    center = true,
-  })
-  hl.window_rule({
     name = "center-nwg-displays",
     match = { class = "nwg-displays" },
     float = true,

@@ -10,8 +10,9 @@ return function(ctx)
   hl.bind("XF86Launch1", hl.dsp.exec_cmd("env GTK_THEME=Adwaita:dark nwg-displays"), { locked = true })
   hl.bind(mod .. " + V", hl.dsp.layout("togglesplit"))
   -- Toggle Fcitx5 between the UK keyboard and Rime Chinese input.
-  hl.bind("ALT + SHIFT_L", hl.dsp.exec_cmd("fcitx5-remote -t; pkill -RTMIN+12 waybar"))
-  hl.bind("ALT + SHIFT_R", hl.dsp.exec_cmd("fcitx5-remote -t; pkill -RTMIN+12 waybar"))
+  -- Quickshell polls the input state itself; it has no Waybar signal to send.
+  hl.bind("ALT + SHIFT_L", hl.dsp.exec_cmd("fcitx5-remote -t"))
+  hl.bind("ALT + SHIFT_R", hl.dsp.exec_cmd("fcitx5-remote -t"))
 
   for _, direction in ipairs({ "left", "down", "up", "right" }) do
     hl.bind(mod .. " + " .. direction, hl.dsp.focus({ direction = direction }))
@@ -33,11 +34,11 @@ return function(ctx)
   hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
   hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
-  local audio_control = "sh -c 'config_home=${XDG_CONFIG_HOME:-\"$HOME/.config\"}; exec \"$config_home/waybar/scripts/audio-control\" \"$1\"' _ "
-  hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(audio_control .. "up"), { locked = true, repeating = true })
-  hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(audio_control .. "down"), { locked = true, repeating = true })
-  hl.bind("XF86AudioMute", hl.dsp.exec_cmd(audio_control .. "mute"), { locked = true })
-  hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd(audio_control .. "mic-mute"), { locked = true })
+  -- Use PipeWire directly. Quickshell observes these changes and shows its OSD.
+  hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+  hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true })
+  hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
+  hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
   hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"), { locked = true, repeating = true })
   hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"), { locked = true, repeating = true })
   hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })

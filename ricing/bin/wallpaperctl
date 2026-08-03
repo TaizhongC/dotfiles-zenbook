@@ -1,0 +1,72 @@
+#!/usr/bin/env sh
+# Set or select a desktop wallpaper and keep Hyprlock in sync with it.
+set -eu
+
+wallpaper_dir="${XDG_DATA_HOME:-$HOME/.local/share}/wallpapers"
+state_dir="$HOME/.local/state/ricing"
+current_wallpaper="$state_dir/current-wallpaper"
+
+start_daemon() {
+  if ! awww query >/dev/null 2>&1; then
+    awww-daemon --quiet >/dev/null 2>&1 &
+    attempts=0
+    while ! awww query >/dev/null 2>&1; do
+      attempts=$((attempts + 1))
+      [ "$attempts" -lt 30 ] || { echo "wallpaperctl: awww-daemon did not start" >&2; exit 1; }
+      sleep 0.1
+    done
+  fi
+}
+
+set_wallpaper() {
+  image=$1
+  [ -f "$image" ] || { echo "wallpaperctl: image not found: $image" >&2; exit 1; }
+  mkdir -p "$state_dir"
+  ln -sfn "$image" "$current_wallpaper"
+  start_daemon
+  awww img "$image" --resize crop --crop-gravity center --filter Lanczos3 \
+    --transition-type fade --transition-duration 0.8
+  # Quickshell watches this cache and immediately updates its color tokens.
+  wal -i "$image" >/dev/null
+  python3 "$HOME/.local/bin/wal-app-theme"
+}
+
+next_wallpaper() {
+  [ -d "$wallpaper_dir" ] || { echo "wallpaperctl: directory not found: $wallpaper_dir" >&2; exit 1; }
+  current=$(readlink -f "$current_wallpaper" 2>/dev/null || true)
+  next=$(find "$wallpaper_dir" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print | sort | awk -v current="$current" '$0 > current { print; exit } END { if (NR && !found) {} }')
+  [ -n "$next" ] || next=$(find "$wallpaper_dir" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print | sort | head -n 1)
+  [ -n "$next" ] && set_wallpaper "$next"
+}
+
+restore_wallpaper() {
+  # Resolve the link before replacing it.  Passing current_wallpaper itself to
+  # set_wallpaper would make ln create a link pointing back to itself.
+  if [ -L "$current_wallpaper" ] && [ -f "$current_wallpaper" ]; then
+    image=$(readlink -f "$current_wallpaper")
+    set_wallpaper "$image"
+    return
+  fi
+
+  # A missing or stale state link must not prevent the lock screen from
+  # starting.  Restore a deterministic available wallpaper when possible.
+  fallback=$(find "$wallpaper_dir" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print | sort | head -n 1)
+  [ -n "$fallback" ] && set_wallpaper "$fallback"
+}
+
+pick_wallpaper() {
+  # The shell now owns app search; without a separate dmenu picker, cycling is
+  # the useful non-interactive wallpaper-switcher behavior.
+  command -v fuzzel >/dev/null 2>&1 || { next_wallpaper; return; }
+  [ -d "$wallpaper_dir" ] || { echo "wallpaperctl: directory not found: $wallpaper_dir" >&2; exit 1; }
+  selection=$(find "$wallpaper_dir" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -printf '%f\n' | sort | fuzzel --dmenu --prompt='Wallpaper: ') || exit 0
+  [ -n "$selection" ] && set_wallpaper "$wallpaper_dir/$selection"
+}
+
+case "${1:-pick}" in
+  pick) pick_wallpaper ;;
+  next) next_wallpaper ;;
+  set) [ "$#" -eq 2 ] || { echo "Usage: wallpaperctl set IMAGE" >&2; exit 2; }; set_wallpaper "$2" ;;
+  restore) restore_wallpaper ;;
+  *) echo "Usage: wallpaperctl {pick|next|set IMAGE|restore}" >&2; exit 2 ;;
+esac
