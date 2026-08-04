@@ -1,30 +1,88 @@
 import QtQuick 6.10
+import QtQuick.Effects
 import Quickshell
-import Quickshell.Io
 import "../../../services" as QsServices
 
 Item {
     id: root
     signal closeRequested()
-    property var wallpapers: []
-    readonly property string wallpaperDir: `${Quickshell.env("HOME")}/.local/share/wallpapers`
+
+    readonly property var wallpaperService: QsServices.Wallpaper
+    readonly property var wallpapers: wallpaperService.wallpapers
+
     implicitWidth: 520
     implicitHeight: 250
 
-    Component.onCompleted: listProc.exec(["sh", "-c", "find \"$1\" -maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) -print | sort", "sh", wallpaperDir])
-    Process { id: listProc; stdout: StdioCollector { onStreamFinished: root.wallpapers = text.trim().split("\n").filter(path => path.length) } }
-
     Rectangle {
-        anchors.fill: parent; radius: 20; color: QsServices.Pywal.surfaceContainerHighest
-        border.width: 1; border.color: QsServices.Pywal.outlineVariant
+        anchors.fill: parent
+        radius: 20
+        color: QsServices.Pywal.surfaceContainerHighest
+        border.width: 1
+        border.color: QsServices.Pywal.outlineVariant
+
         GridView {
-            anchors.fill: parent; anchors.margins: 12; clip: true; cellWidth: 120; cellHeight: 108; model: root.wallpapers
+            anchors.fill: parent
+            anchors.margins: 12
+            clip: true
+            cellWidth: 120
+            cellHeight: 108
+            model: root.wallpapers
+
             delegate: Item {
+                id: thumbItem
                 required property var modelData
-                width: 112; height: 100
-                Image { anchors.fill: parent; source: "file://" + modelData; fillMode: Image.PreserveAspectCrop; asynchronous: true; clip: true }
-                Rectangle { anchors.fill: parent; color: "transparent"; radius: 12; border.width: 1; border.color: QsServices.Pywal.outlineVariant }
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { Quickshell.execDetached(["wallpaperctl", "set", modelData]); root.closeRequested() } }
+                width: 112
+                height: 100
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 14
+                    color: "transparent"
+                    border.width: thumbMouse.containsMouse ? 2 : 1
+                    border.color: thumbMouse.containsMouse ? QsServices.Pywal.primary : QsServices.Pywal.outlineVariant
+                    Behavior on border.color { ColorAnimation { duration: 150 } }
+                    clip: true
+                    layer.enabled: true
+
+                    Image {
+                        anchors.fill: parent
+                        source: "file://" + thumbItem.modelData
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        cache: true
+                        sourceSize.width: 240
+                        sourceSize.height: 200
+
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            maskEnabled: true
+                            maskSource: maskRect
+                        }
+                    }
+
+                    Item {
+                        id: maskRect
+                        anchors.fill: parent
+                        visible: false
+                        layer.enabled: true
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 14
+                            color: "#ffffff"
+                        }
+                    }
+                }
+
+                MouseArea {
+                    id: thumbMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        Quickshell.execDetached(["wallpaperctl", "set", thumbItem.modelData])
+                        root.closeRequested()
+                    }
+                }
             }
         }
     }
