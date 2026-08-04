@@ -23,4 +23,9 @@ return function()
     center = true,
     size = "1000 700",
   })
+  hl.layer_rule({
+    name = "no-anim-quickshell",
+    match = { namespace = "^(quickshell.*)$" },
+    no_anim = true,
+  })
 end

@@ -3,6 +3,7 @@ import QtQuick.Layouts 6.10
 import QtQuick.Controls 6.10 as QQC
 import Quickshell.Io
 import "../../../services" as QsServices
+import "../../../config" as QsConfig
 
 FocusScope {
     id: popupPanel
@@ -11,6 +12,7 @@ FocusScope {
     signal closeRequested()
     readonly property var pywal: QsServices.Pywal
     readonly property var network: QsServices.Network
+    readonly property var appearance: QsConfig.AppearanceConfig
     readonly property var sortedNetworks: [...network.networks].sort((a, b) => {
         if (a.active !== b.active) return b.active - a.active
         return b.strength - a.strength
@@ -122,7 +124,7 @@ FocusScope {
                 color: scanArea.pressed ? Qt.rgba(cOnSurface.r, cOnSurface.g, cOnSurface.b, 0.12) : scanArea.containsMouse ? Qt.rgba(cOnSurface.r, cOnSurface.g, cOnSurface.b, 0.08) : cSurfaceContainer
                 Behavior on color { ColorAnimation { duration: 150 } }
                 scale: scanArea.pressed ? 0.97 : 1.0
-                Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: Material3Anim.springGentle } }
+                Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
 
                 RowLayout {
                     anchors.centerIn: parent
@@ -266,7 +268,7 @@ FocusScope {
                                 color: actionArea.pressed ? Qt.rgba(cPrimary.r, cPrimary.g, cPrimary.b, 0.15) : "transparent"
                                 Behavior on color { ColorAnimation { duration: 100 } }
                                 scale: actionArea.pressed ? 0.9 : 1.0
-                                Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: Material3Anim.springGentle } }
+                                Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
 
                                 Text {
                                     anchors.centerIn: parent
@@ -320,7 +322,7 @@ FocusScope {
                 color: settingsArea.pressed ? Qt.rgba(cOnSurface.r, cOnSurface.g, cOnSurface.b, 0.12) : settingsArea.containsMouse ? Qt.rgba(cOnSurface.r, cOnSurface.g, cOnSurface.b, 0.08) : "transparent"
                 Behavior on color { ColorAnimation { duration: 150 } }
                 scale: settingsArea.pressed ? 0.97 : 1.0
-                Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: Material3Anim.springGentle } }
+                Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
 
                 RowLayout {
                     anchors.centerIn: parent
@@ -476,7 +478,7 @@ FocusScope {
                         color: cancelBtn.pressed ? Qt.rgba(cOnSurface.r, cOnSurface.g, cOnSurface.b, 0.12) : cancelBtn.containsMouse ? Qt.rgba(cOnSurface.r, cOnSurface.g, cOnSurface.b, 0.08) : "transparent"
                         Behavior on color { ColorAnimation { duration: 150 } }
                         scale: cancelBtn.pressed ? 0.95 : 1.0
-                        Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: Material3Anim.springGentle } }
+                        Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
 
                         Text {
                             anchors.centerIn: parent

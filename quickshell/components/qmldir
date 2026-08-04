@@ -1,4 +1,6 @@
 module qs.components
+singleton PanelMotion 1.0 PanelMotion.qml
+BasePanel 1.0 BasePanel.qml
 Anim 1.0 Anim.qml
 NotificationCard 1.0 NotificationCard.qml
 AuroraSurface 1.0 AuroraSurface.qml

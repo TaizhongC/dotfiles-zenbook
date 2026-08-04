@@ -7,6 +7,7 @@ import Quickshell.Widgets
 import "../../config" as QsConfig
 import "../../services" as QsServices
 import "../../components"
+import "../../components" as QsComponents
 
 PanelWindow {
     id: root
@@ -225,7 +226,7 @@ PanelWindow {
         id: panel
         anchors.fill: parent
         transformOrigin: Item.Top
-        scale: shouldShow ? 1.0 : appearance.anim.popup.closedScale
+        scale: shouldShow ? 1.0 : QsComponents.PanelMotion.closedScale
         opacity: shouldShow ? 1.0 : 0.0
         focus: root.shouldShow
 
@@ -236,11 +237,11 @@ PanelWindow {
         Keys.onEnterPressed: root.launchEntry(root.visibleEntries[root.selectedIndex])
 
         Behavior on scale {
-            NumberAnimation { duration: appearance.anim.popup.duration; easing.bezierCurve: appearance.anim.popup.curve }
+            NumberAnimation { duration: QsComponents.PanelMotion.duration; easing.bezierCurve: QsComponents.PanelMotion.curve }
         }
 
         Behavior on opacity {
-            NumberAnimation { duration: appearance.anim.popup.fadeDuration; easing.bezierCurve: appearance.anim.popup.curve }
+            NumberAnimation { duration: QsComponents.PanelMotion.fadeDuration; easing.bezierCurve: QsComponents.PanelMotion.curve }
         }
 
 

@@ -5,6 +5,7 @@ import Quickshell.Io
 import "../../config" as QsConfig
 import "../../services" as QsServices
 import "../../components"
+import "../../components" as QsComponents
 
 PanelWindow {
     id: root
@@ -26,7 +27,7 @@ PanelWindow {
     Process { id: listProc; stdout: StdioCollector { onStreamFinished: root.wallpapers = text.trim().split("\n").filter(path => path.length) } }
     FocusScope {
         id: panel; anchors.fill: parent; transformOrigin: Item.Top
-        scale: root.shouldShow ? 1 : appearance.anim.popup.closedScale
+        scale: root.shouldShow ? 1 : QsComponents.PanelMotion.closedScale
         opacity: root.shouldShow ? 1 : 0
         focus: root.shouldShow
         Keys.onEscapePressed: root.shouldShow = false
@@ -38,8 +39,8 @@ PanelWindow {
             }
         }
         Timer { id: closeTimer; interval: 600; onTriggered: if (!hoverHandler.hovered) root.shouldShow = false }
-        Behavior on scale { NumberAnimation { duration: appearance.anim.popup.duration; easing.bezierCurve: appearance.anim.popup.curve } }
-        Behavior on opacity { NumberAnimation { duration: appearance.anim.popup.fadeDuration; easing.bezierCurve: appearance.anim.popup.curve } }
+        Behavior on scale { NumberAnimation { duration: QsComponents.PanelMotion.duration; easing.bezierCurve: QsComponents.PanelMotion.curve } }
+        Behavior on opacity { NumberAnimation { duration: QsComponents.PanelMotion.fadeDuration; easing.bezierCurve: QsComponents.PanelMotion.curve } }
         Rectangle {
             anchors.fill: parent; radius: 28; color: QsServices.Pywal.surfaceContainerHighest; clip: true
             GridView {

@@ -4,6 +4,7 @@ import QtQuick.Layouts 6.10
 import QtQuick.Effects
 import "components" as BarComponents
 import "../../components"
+import "../../components" as QsComponents
 import "../../components/effects"
 import "../../config" as QsConfig
 import "../../services" as QsServices
@@ -21,8 +22,17 @@ Item {
     
     // ═══ Inline Popup State ═══
     property string activePopup: ""  // "", "bluetooth", "network"
+    property string lastActivePopup: "network"
     readonly property bool hasPopup: activePopup !== ""
-    readonly property real popupAreaHeight: hasPopup ? popupHost.height : 0
+    readonly property bool isPopupOpen: hasPopup || popupContentWrapper.opacity > 0
+    readonly property string currentPopup: hasPopup ? activePopup : lastActivePopup
+    readonly property real popupAreaHeight: isPopupOpen ? popupHost.height : 0
+
+    onActivePopupChanged: {
+        if (activePopup !== "") {
+            lastActivePopup = activePopup
+        }
+    }
     
     function togglePopup(name: string) {
         if (activePopup === name) {
@@ -36,14 +46,15 @@ Item {
     }
 
     function popupAnchorTarget() {
-        if (activePopup === "network" || activePopup === "bluetooth") return connectivityPill
-        if (activePopup === "wallpapers") return leftModule
-        if (activePopup === "battery") return powerPill
+        const p = currentPopup
+        if (p === "network" || p === "bluetooth") return connectivityPill
+        if (p === "wallpapers") return leftModule
+        if (p === "battery") return powerPill
         return rightPills
     }
     
     readonly property var config: QsConfig.Config
-    readonly property var appearance: QsConfig.AppearanceConfig
+    readonly property var appearance: QsConfig.Config.appearanceTokens
     readonly property var pywal: QsServices.Pywal
     
     // ═══════════════════════════════════════════════════════════════════════
@@ -478,7 +489,7 @@ Item {
         anchors.topMargin: 4
         anchors.left: parent.left
         anchors.right: parent.right
-        height: hasPopup ? popupContentWrapper.height + 12 : 0
+        height: root.isPopupOpen ? popupContentWrapper.height + 12 : 0
         clip: true
 
         // Match Control Center behavior: close after leaving popup focus area
@@ -516,15 +527,15 @@ Item {
         
         Behavior on height {
             NumberAnimation {
-                duration: 70
-                easing.type: Easing.OutCubic
+                duration: 0
+                easing.bezierCurve: root.appearance.anim.popup.curve
             }
         }
         
         // Click-outside scrim to dismiss popup
         MouseArea {
             anchors.fill: parent
-            visible: hasPopup
+            visible: root.hasPopup
             onClicked: root.closePopup()
         }
         
@@ -545,7 +556,7 @@ Item {
 
                 return Math.max(hostPadding, popupHost.width - w - hostPadding)
             }
-            width: activePopup === "network" ? 340 : activePopup === "wallpapers" ? 520 : 320
+            width: root.currentPopup === "network" ? 340 : root.currentPopup === "wallpapers" ? 520 : 320
             height: {
                 if (btPanelLoader.active && btPanelLoader.item)
                     return btPanelLoader.item.implicitHeight
@@ -556,21 +567,21 @@ Item {
                 return 0
             }
             
-            // Entry animation
-            scale: 1.0
-            opacity: hasPopup ? 1 : 0
+            // Entry animation using central PanelMotion module
+            scale: root.hasPopup ? 1.0 : QsComponents.PanelMotion.closedScale
+            opacity: root.hasPopup ? 1.0 : 0.0
             transformOrigin: Item.TopRight
             
             Behavior on scale {
                 NumberAnimation {
-                    duration: 70
-                    easing.type: Easing.OutCubic
+                    duration: QsComponents.PanelMotion.duration
+                    easing.bezierCurve: QsComponents.PanelMotion.curve
                 }
             }
             Behavior on opacity {
                 NumberAnimation {
-                    duration: 70
-                    easing.type: Easing.OutCubic
+                    duration: QsComponents.PanelMotion.fadeDuration
+                    easing.bezierCurve: QsComponents.PanelMotion.curve
                 }
             }
 
@@ -590,7 +601,7 @@ Item {
             Loader {
                 id: btPanelLoader
                 anchors.fill: parent
-                active: root.activePopup === "bluetooth"
+                active: root.currentPopup === "bluetooth" && root.isPopupOpen
                 source: "components/BluetoothPanel.qml"
                 
                 onLoaded: {
@@ -608,7 +619,7 @@ Item {
             Loader {
                 id: netPanelLoader
                 anchors.fill: parent
-                active: root.activePopup === "network"
+                active: root.currentPopup === "network" && root.isPopupOpen
                 source: "components/NetworkPanel.qml"
                 
                 onLoaded: {
@@ -624,7 +635,7 @@ Item {
             Loader {
                 id: wallpaperPanelLoader
                 anchors.fill: parent
-                active: root.activePopup === "wallpapers"
+                active: root.currentPopup === "wallpapers" && root.isPopupOpen
                 source: "components/WallpaperPanel.qml"
                 Connections { target: wallpaperPanelLoader.item; function onCloseRequested() { root.closePopup() } }
             }

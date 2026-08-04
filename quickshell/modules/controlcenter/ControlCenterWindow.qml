@@ -7,6 +7,7 @@ import Quickshell.Io
 import "../../services" as QsServices
 import "../../config" as QsConfig
 import "../../components"
+import "../../components" as QsComponents
 import "../../components/effects"
 import "components"
 
@@ -69,7 +70,7 @@ PanelWindow {
         anchors.fill: parent
 
         transformOrigin: Item.TopRight
-        scale: root.shouldShow ? 1.0 : appearance.anim.popup.closedScale
+        scale: root.shouldShow ? 1.0 : QsComponents.PanelMotion.closedScale
         opacity: root.shouldShow ? 1.0 : 0.0
 
         focus: true
@@ -87,8 +88,8 @@ PanelWindow {
 
         MouseArea { anchors.fill: parent; z: -1; onClicked: root.shouldShow = false }
 
-        Behavior on scale { NumberAnimation { duration: appearance.anim.popup.duration; easing.bezierCurve: appearance.anim.popup.curve } }
-        Behavior on opacity { NumberAnimation { duration: appearance.anim.popup.fadeDuration; easing.bezierCurve: appearance.anim.popup.curve } }
+        Behavior on scale { NumberAnimation { duration: QsComponents.PanelMotion.duration; easing.bezierCurve: QsComponents.PanelMotion.curve } }
+        Behavior on opacity { NumberAnimation { duration: QsComponents.PanelMotion.fadeDuration; easing.bezierCurve: QsComponents.PanelMotion.curve } }
 
         Rectangle {
             id: panel

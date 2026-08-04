@@ -101,11 +101,11 @@ Scope {
                 right: true
             }
             
-            // Fixed exclusive zone: only the bar strip reserves space
+            // Fixed exclusive zone: only the bar strip reserves space for desktop windows
             exclusiveZone: config.bar.height
             
-            // Dynamic height: bar + inline popup area
-            implicitHeight: config.bar.height + (barLoader.item?.popupAreaHeight ?? 0)
+            // Fixed height to prevent Wayland layer surface resizes (matching Sidebar/ControlCenter motion without bar flashing)
+            implicitHeight: config.bar.height + 560
             color: "transparent"
             
             // Allow keyboard focus when a popup is open

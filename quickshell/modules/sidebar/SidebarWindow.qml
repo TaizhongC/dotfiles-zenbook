@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import "../../config" as QsConfig
 import "../../services" as QsServices
 import "../../components"
+import "../../components" as QsComponents
 
 PanelWindow {
     id: root
@@ -70,19 +71,19 @@ PanelWindow {
 
     FocusScope {
         id: panel
-        anchors.fill: parent
-        scale: shouldShow ? 1.0 : appearance.anim.popup.closedScale
+        transformOrigin: Item.TopRight
+        scale: shouldShow ? 1.0 : QsComponents.PanelMotion.closedScale
         opacity: shouldShow ? 1.0 : 0.0
         focus: root.shouldShow
 
         Keys.onEscapePressed: root.closeSidebar()
 
         Behavior on scale {
-            NumberAnimation { duration: appearance.anim.popup.duration; easing.bezierCurve: appearance.anim.popup.curve }
+            NumberAnimation { duration: QsComponents.PanelMotion.duration; easing.bezierCurve: QsComponents.PanelMotion.curve }
         }
 
         Behavior on opacity {
-            NumberAnimation { duration: appearance.anim.popup.fadeDuration; easing.bezierCurve: appearance.anim.popup.curve }
+            NumberAnimation { duration: QsComponents.PanelMotion.fadeDuration; easing.bezierCurve: QsComponents.PanelMotion.curve }
         }
 
         AuroraSurface {
