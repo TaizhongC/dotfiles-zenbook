@@ -34,7 +34,11 @@ FocusScope {
     focus: true
 
     Keys.onEscapePressed: {
-        if (!passwordDialog.isOpen) closeRequested()
+        if (passwordDialog.isOpen) {
+            passwordDialog.close()
+        } else {
+            closeRequested()
+        }
     }
 
     Rectangle {
@@ -182,6 +186,30 @@ FocusScope {
                         required property var modelData
                         property bool isActive: modelData.active
 
+                        function tryConnect() {
+                            if (isActive) {
+                                network.disconnectFromNetwork()
+                            } else {
+                                const isSaved = network.savedNetworks.includes(networkItem.modelData.ssid)
+                                if (isSaved) {
+                                    network.connectToNetwork(networkItem.modelData.ssid, "")
+                                } else if (networkItem.modelData.isSecure) {
+                                    passwordDialog.networkSSID = networkItem.modelData.ssid
+                                    passwordDialog.open()
+                                } else {
+                                    network.connectToNetwork(networkItem.modelData.ssid, "")
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: itemArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: networkItem.tryConnect()
+                        }
+
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: 12
@@ -253,30 +281,9 @@ FocusScope {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (isActive) {
-                                            network.disconnectFromNetwork()
-                                        } else {
-                                            const isSaved = network.savedNetworks.includes(networkItem.modelData.ssid)
-                                            if (isSaved) {
-                                                network.connectToNetwork(networkItem.modelData.ssid, "")
-                                            } else if (networkItem.modelData.isSecure) {
-                                                passwordDialog.networkSSID = networkItem.modelData.ssid
-                                                passwordDialog.open()
-                                            } else {
-                                                network.connectToNetwork(networkItem.modelData.ssid, "")
-                                            }
-                                        }
-                                    }
+                                    onClicked: networkItem.tryConnect()
                                 }
                             }
-                        }
-
-                        MouseArea {
-                            id: itemArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            z: -1
                         }
                     }
                 }
@@ -349,7 +356,7 @@ FocusScope {
     Item {
         id: passwordDialog
         anchors.fill: parent
-        visible: opacity > 0
+        visible: isOpen || opacity > 0
         z: 100
 
         property string networkSSID: ""
@@ -357,8 +364,14 @@ FocusScope {
 
         opacity: 0
 
-        function open() { isOpen = true; passwordInput.forceActiveFocus() }
-        function close() { isOpen = false; passwordInput.text = "" }
+        function open() { 
+            isOpen = true
+            Qt.callLater(() => passwordInput.forceActiveFocus())
+        }
+        function close() { 
+            isOpen = false
+            passwordInput.text = "" 
+        }
 
         states: State {
             name: "open"; when: passwordDialog.isOpen
@@ -397,6 +410,11 @@ FocusScope {
             color: cSurface
             scale: 0.9
 
+            MouseArea {
+                anchors.fill: parent
+                onClicked: (mouse) => mouse.accepted = true
+            }
+
             ColumnLayout {
                 id: dialogColumn
                 anchors.fill: parent
@@ -431,6 +449,7 @@ FocusScope {
                         anchors.fill: parent
                         anchors.margins: 10
                         placeholderText: "Password"
+                        placeholderTextColor: cOnSurfaceVariant
                         echoMode: QQC.TextField.Password
                         color: cOnSurface
                         background: Item {}
