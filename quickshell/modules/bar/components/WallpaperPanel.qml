@@ -13,6 +13,10 @@ Item {
     implicitWidth: 520
     implicitHeight: 250
 
+    Component.onCompleted: {
+        wallpaperService.refresh()
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: 20

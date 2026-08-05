@@ -8,6 +8,10 @@ Item {
     readonly property var wallpaperService: QsServices.Wallpaper
     readonly property var wallpapers: wallpaperService.wallpapers
 
+    Component.onCompleted: {
+        wallpaperService.refresh()
+    }
+
     GridView {
         anchors.fill: parent
         clip: true

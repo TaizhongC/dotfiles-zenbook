@@ -3,6 +3,7 @@ pragma Singleton
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import Qt.labs.folderlistmodel
 
 Singleton {
     id: root
@@ -12,6 +13,17 @@ Singleton {
 
     function refresh(): void {
         listProc.exec(["sh", "-c", "find \"$1\" -maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) -print | sort", "sh", wallpaperDir])
+    }
+
+    // Inotify file watcher for the wallpaper directory
+    FolderListModel {
+        id: folderWatcher
+        folder: `file://${root.wallpaperDir}`
+        nameFilters: ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.JPG", "*.JPEG", "*.PNG", "*.WEBP"]
+        showDirs: false
+        onCountChanged: root.refresh()
+        onRowsInserted: root.refresh()
+        onRowsRemoved: root.refresh()
     }
 
     Process {
