@@ -59,6 +59,10 @@ ColumnLayout {
             required property var modelData
 
             width: ListView.view.width
+            // Explicit height — children with anchors.fill do not size their
+            // parent, so delegates otherwise collapse to 0 and every
+            // notification overlaps the first one.
+            height: Math.max(88, notifCard.implicitHeight + 18)
             radius: 16
             color: notifDelegate.modelData.read
                 ? "transparent"
@@ -66,6 +70,7 @@ ColumnLayout {
             Behavior on color { ColorAnimation { duration: 150 } }
 
             NotificationCard {
+                id: notifCard
                 anchors.fill: parent
                 notification: notifDelegate.modelData
                 pywal: root.pywal

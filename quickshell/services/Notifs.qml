@@ -22,7 +22,7 @@ Singleton {
         const hoursSinceNotif = (new Date().getTime() - n.timestamp.getTime()) / (1000 * 60 * 60)
         return hoursSinceNotif < 24
     }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-    readonly property var unreadNotifications: recentNotifications.filter(n => !n.read)
+    readonly property var unreadNotifications: recentNotifications.filter(n => !n.read && !n.closed)
     readonly property int unreadCount: unreadNotifications.length
     
     // Group notifications by app for better UX
@@ -165,6 +165,7 @@ Singleton {
         property var notification
         property date timestamp: new Date()
         property bool closed: false
+        property bool popupDismissed: false  // popup hid on timeout — still live in the panel
         property bool hasAnimated: false  // Track if popup animation has played
         property bool read: false
         
@@ -197,7 +198,11 @@ Singleton {
             target: notifWrapper.notification
             
             function onClosed() {
-                notifWrapper.close();
+                // Daemon-initiated close (expiry, dismissal by another client).
+                // The notification stays in the panel history — only its
+                // popup hides. User-initiated removal uses close() directly.
+                if (!notifWrapper.closed)
+                    notifWrapper.popupDismissed = true;
             }
             
             function onSummaryChanged() {

@@ -40,9 +40,11 @@ PanelWindow {
         return m3Primary
     }
 
-    // Active popups — newest first, capped to maxVisible
+    // Active popups — newest first, capped to maxVisible. Timeout-dismissed
+    // cards are excluded so they never re-materialize from the model (e.g.
+    // after a config reload) — they remain live in the notification panel.
     readonly property var activePopups: (notifs.notifications || [])
-        .filter(n => !!n && !n.closed)
+        .filter(n => !!n && !n.closed && !n.popupDismissed)
         .slice(0, config.notifications.maxVisible)
 
     // ── Window Setup ──
@@ -99,8 +101,8 @@ PanelWindow {
                 property real timeoutProgress: 1.0
 
                 // ── Entrance animation properties ──
-                property real entryScale: 0.82
-                property real entryY: -24
+                property real entryScale: 0.95
+                property real entryY: -16
                 property real entryOpacity: 0
                 property real entryRotation: 0
 
@@ -115,11 +117,11 @@ PanelWindow {
                     }
                 }
 
-                // ── Entrance: spring drop-in from above ──
+                // ── Entrance: drop in from above ──
                 SequentialAnimation {
                     id: entranceAnim
 
-                    PauseAnimation { duration: notifCard.index * 35 }
+                    PauseAnimation { duration: notifCard.index * 25 }
 
                     ParallelAnimation {
                         NumberAnimation {
@@ -129,15 +131,13 @@ PanelWindow {
                         }
                         NumberAnimation {
                             target: notifCard; property: "entryScale"
-                            from: 0.82; to: 1.0
-                            duration: 380
-                            easing.type: Easing.OutBack; easing.overshoot: 1.6
+                            from: 0.95; to: 1.0
+                            duration: 220; easing.type: Easing.OutCubic
                         }
                         NumberAnimation {
                             target: notifCard; property: "entryY"
-                            from: -28; to: 0
-                            duration: 380
-                            easing.type: Easing.OutBack; easing.overshoot: 1.2
+                            from: -16; to: 0
+                            duration: 220; easing.type: Easing.OutCubic
                         }
                     }
                 }
@@ -210,6 +210,8 @@ PanelWindow {
                 }
 
                 // ── Standard dismiss (scale + fade) ──
+                // Only hides the popup — the notification is NOT closed so it
+                // stays in the notification panel (unread history).
                 SequentialAnimation {
                     id: dismissAnim
 
@@ -227,11 +229,11 @@ PanelWindow {
                         target: notifCard; property: "height"
                         to: 0; duration: 100; easing.type: Easing.InCubic
                     }
-                    ScriptAction { script: modelData.close() }
                 }
 
                 function dismiss() {
                     isVisible = false
+                    modelData.popupDismissed = true
                     dismissAnim.start()
                 }
 

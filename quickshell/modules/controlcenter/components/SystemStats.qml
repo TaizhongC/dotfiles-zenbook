@@ -28,6 +28,14 @@ Item {
 
             Item { Layout.fillWidth: true }
             StatItem {
+                icon: "󰔠"; label: "TEMP"; value: root.systemUsage.cpuTemp ?? 0
+                suffix: "°"
+                accentColor: value > 80 ? pywal.error : value > 60 ? pywal.warning : pywal.primary
+            }
+            Item { Layout.fillWidth: true }
+            Rectangle { width: 1; height: 48; color: Qt.rgba(root.cOnSurface.r, root.cOnSurface.g, root.cOnSurface.b, 0.1) }
+            Item { Layout.fillWidth: true }
+            StatItem {
                 icon: "󰘚"; label: "CPU"; value: (root.systemUsage.cpuPerc ?? 0) * 100
                 accentColor: value > 80 ? pywal.error : value > 50 ? pywal.warning : pywal.primary
             }
@@ -54,6 +62,7 @@ Item {
         property string label
         property real value
         property color accentColor
+        property string suffix: "%"
 
         spacing: 4
 
@@ -67,7 +76,7 @@ Item {
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: Math.round(value) + "%"
+            text: Math.round(value) + suffix
             font.family: "Inter"; font.pixelSize: 28; font.weight: Font.Black
             color: root.cOnSurface
             Behavior on color { ColorAnimation { duration: 200 } }

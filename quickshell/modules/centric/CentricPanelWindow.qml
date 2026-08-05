@@ -71,7 +71,7 @@ PanelWindow {
         if (activePanel === "control") return 820
         if (activePanel === "notification") return 520
         if (activePanel === "calendar") return 440
-        if (activePanel === "wallpaper") return 520
+        if (activePanel === "wallpaper") return 640
         if (activePanel === "launcher") return 560
         return 440
     }
@@ -80,7 +80,7 @@ PanelWindow {
             if (activePanel === "control") return 700
             if (activePanel === "notification") return 720
             if (activePanel === "calendar") return 420
-            if (activePanel === "wallpaper") return 360
+            if (activePanel === "wallpaper") return 420
             if (activePanel === "launcher") return 560
             return 400
         }
@@ -135,7 +135,7 @@ PanelWindow {
                 Loader {
                     id: wallpaperLoader
                     anchors.fill: parent
-                    anchors.margins: 16
+                    anchors.margins: 12
                     active: root.activePanel === "wallpaper" || opacity > 0
                     source: "../wallpaper/WallpaperPanelContent.qml"
                     opacity: root.activePanel === "wallpaper" ? 1.0 : 0.0

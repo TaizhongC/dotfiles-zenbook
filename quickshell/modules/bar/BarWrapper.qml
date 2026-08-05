@@ -56,7 +56,11 @@ Scope {
             const panel = centricLoader.item
             if (!panel)
                 return
+            const opening = panel.activePanel !== "notification"
             panel.togglePanel("notification")
+            // Opening the notification center counts as seeing everything.
+            if (opening)
+                QsServices.Notifs.markAllRead()
         }
 
         function toggleCalendar(): void {

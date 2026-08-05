@@ -12,6 +12,7 @@ Singleton {
     property bool active: true
     
     property real cpuPerc: 0
+    property real cpuTemp: 0  // celsius — read from the CPU hwmon sensor (k10temp/coretemp)
     property real memUsed: 0
     property real memTotal: 1
     readonly property real memPerc: memTotal > 0 ? memUsed / memTotal : 0
@@ -91,7 +92,7 @@ Singleton {
     // Combined CPU, memory, and network read (shared /proc sources)
     Process {
         id: sysStatsProcess
-        command: ["/bin/sh", "-c", "cat /proc/stat | grep '^cpu ' && echo '---MEM---' && free -b | grep Mem && echo '---NET---' && cat /proc/net/dev | tail -n +3 | awk '{rx+=$2; tx+=$10} END {print rx\" \"tx}'"]
+        command: ["/bin/sh", "-c", "cat /proc/stat | grep '^cpu ' && echo '---MEM---' && free -b | grep Mem && echo '---NET---' && cat /proc/net/dev | tail -n +3 | awk '{rx+=$2; tx+=$10} END {print rx\" \"tx}' && echo '---TEMP---' && for h in /sys/class/hwmon/hwmon*; do n=$(cat $h/name 2>/dev/null); if [ \"$n\" = \"k10temp\" ] || [ \"$n\" = \"coretemp\" ]; then cat $h/temp1_input; break; fi; done"]
         running: false
 
         stdout: StdioCollector {
@@ -130,9 +131,10 @@ Singleton {
                     root.memUsed = parseInt(memParts[2])
                 }
 
-                // --- Parse network (after ---NET---) ---
+                // --- Parse network (between ---NET--- and ---TEMP---) ---
                 if (memAndNet.length >= 2) {
-                    const netData = memAndNet[1].trim()
+                    const netAndTemp = memAndNet[1].split('---TEMP---\n')
+                    const netData = (netAndTemp[0] ?? "").trim()
                     const netParts = netData.split(/\s+/)
                     if (netParts.length >= 2) {
                         const rxBytes = parseInt(netParts[0])
@@ -156,6 +158,15 @@ Singleton {
                         root.lastRxBytes = rxBytes
                         root.lastTxBytes = txBytes
                         root.lastNetTime = currentTime
+                    }
+
+                    // --- Parse CPU temperature (after ---TEMP---, millidegrees) ---
+                    if (netAndTemp.length >= 2) {
+                        const rawTemp = (netAndTemp[1] ?? "").trim()
+                        const temp = parseFloat(rawTemp)
+                        if (!isNaN(temp) && temp > 0) {
+                            root.cpuTemp = temp / 1000
+                        }
                     }
                 }
             }

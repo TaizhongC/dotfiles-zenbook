@@ -49,7 +49,9 @@ Item {
             if (root.hasUnread) return pywal.warning
             if (root.isActive) return pywal.primary
             if (isHovered) return pywal.primary
-            return pywal.foreground
+            // Match the other bar icons (Volume/Network/Battery all render
+            // foreground at partial alpha — full alpha reads too bright).
+            return Qt.rgba(pywal.foreground.r, pywal.foreground.g, pywal.foreground.b, 0.8)
         }
 
         Behavior on color {

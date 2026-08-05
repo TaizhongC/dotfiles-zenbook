@@ -20,19 +20,11 @@ Item {
     // Screen aspect ratio for the crop preview (monitor 0 is the panel screen)
     readonly property real screenAspect: 16 / 10
 
-    // Preview geometry — cropped to screen ratio
-    readonly property int previewWidth: 300
+    // Preview geometry — cropped to screen ratio. Sized so the preview nearly
+    // fills the card width (640) with only a small gap to the panel edge.
+    readonly property int previewWidth: 560
     readonly property int previewHeight: Math.round(previewWidth / screenAspect)
     readonly property int delegateSpacing: 14
-
-    // Infinite scroll: the model is the wallpaper list repeated 3 times and
-    // currentIndex is always kept inside the middle copy [count, 2*count).
-    // When the index walks out of the middle copy (in either direction) it is
-    // silently shifted back into it — the item is visually identical, so the
-    // jump is invisible and scrolling never hits an end. This also guarantees
-    // the current wallpaper can always be centered (short lists otherwise pin
-    // their first/last item at the edge, where it can't reach the middle).
-    readonly property var listModel: count === 0 ? [] : wallpapers.concat(wallpapers, wallpapers)
 
     onPanelActiveChanged: {
         if (panelActive) {
@@ -64,7 +56,7 @@ Item {
         onTriggered: scrollToCurrent()
     }
 
-    // Index of the current wallpaper in the (single-copy) wallpapers array.
+    // Index of the current wallpaper in the wallpapers array.
     // Falls back to a basename match — the state file may point at a symlink
     // or an equivalent path that doesn't string-equal the listed one.
     function findCurrentLogicalIndex() {
@@ -78,60 +70,37 @@ Item {
         return wallpapers.findIndex(p => p.split("/").pop() === base)
     }
 
-    // Position the view on the current wallpaper (middle copy). currentIndex
-    // must be set first — StrictlyEnforceRange otherwise keeps the old
-    // current item pinned and the highlight never follows.
+    // Position the view on the current wallpaper. currentIndex must be set
+    // first — StrictlyEnforceRange otherwise keeps the old current item
+    // pinned and the highlight never follows.
     function scrollToCurrent() {
         if (count === 0)
             return
         const idx = findCurrentLogicalIndex()
         if (idx >= 0) {
-            list.currentIndex = count + idx
-            list.positionViewAtIndex(list.currentIndex, ListView.Center)
-        }
-    }
-
-    // Keep currentIndex inside the middle copy — the actual infinite scroll.
-    // Model resets also land on low indexes with contentY near 0, so the
-    // contentY guard separates "reset to top" from "scrolled past the seam".
-    property bool wrapping: false
-
-    function handleIndexWrap() {
-        if (wrapping || count === 0)
-            return
-        if (list.contentY < list.height / 2)
-            return
-        if (list.currentIndex >= 2 * count) {
-            wrapping = true
-            list.currentIndex -= count
-            list.positionViewAtIndex(list.currentIndex, ListView.Center)
-            wrapping = false
-        } else if (list.currentIndex < count) {
-            wrapping = true
-            list.currentIndex += count
-            list.positionViewAtIndex(list.currentIndex, ListView.Center)
-            wrapping = false
+            list.currentIndex = idx
+            list.positionViewAtIndex(idx, ListView.Center)
         }
     }
 
     function next() {
         if (count === 0)
             return
-        list.incrementCurrentIndex()
+        if (list.currentIndex < count - 1)
+            list.incrementCurrentIndex()
     }
 
     function prev() {
         if (count === 0)
             return
-        list.decrementCurrentIndex()
+        if (list.currentIndex > 0)
+            list.decrementCurrentIndex()
     }
 
     function applyCurrent() {
-        if (count === 0)
-            return
-        const idx = list.currentIndex % count
+        const idx = list.currentIndex
         const path = wallpapers[idx]
-        if (path && path !== wallpaperService.current) {
+        if (idx >= 0 && path && path !== wallpaperService.current) {
             Quickshell.execDetached(["wallpaperctl", "set", path])
             wallpaperService.current = path
         }
@@ -154,7 +123,7 @@ Item {
         id: list
         anchors.fill: parent
         clip: true
-        model: root.listModel
+        model: root.wallpapers
         spacing: root.delegateSpacing
         boundsBehavior: Flickable.StopAtBounds
 
@@ -167,108 +136,121 @@ Item {
         highlightMoveVelocity: 1400
 
         onCountChanged: scrollToCurrent()
-        onCurrentIndexChanged: root.handleIndexWrap()
 
         delegate: Item {
             id: wrap
             required property var modelData
             required property int index
 
-            width: root.previewWidth
+            // Outer item spans the viewport width; the preview is centered
+            // inside it via anchors.centerIn — a valid parent anchor that
+            // cannot hit null during delegate teardown (anchoring to
+            // parent.horizontalCenter warned on model rebuilds).
+            width: list.width
             height: root.previewHeight
-            anchors.horizontalCenter: parent.horizontalCenter
 
-            // Distance from center decides dimming and scale (0 = selected)
+            // Distance from center decides dimming and scale (0 = selected).
+            // The selected item is never dimmed — at the list ends it cannot
+            // reach the center, but it must stay the highlighted one.
             readonly property real centerDist: Math.abs(
                 wrap.y + height / 2 - list.contentY - list.height / 2)
             readonly property bool isSelected: list.currentIndex === index
-            readonly property real dim: Math.min(1, centerDist / (height + root.delegateSpacing))
-            opacity: 0.35 + 0.65 * (1 - dim)
+            readonly property real dim: wrap.isSelected
+                ? 0
+                : Math.min(1, centerDist / (height + root.delegateSpacing))
 
-            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+            Item {
+                id: preview
+                anchors.centerIn: parent
+                width: root.previewWidth
+                height: root.previewHeight
 
-            scale: 1 - 0.06 * dim
-            Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                opacity: 0.35 + 0.65 * (1 - wrap.dim)
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
-            transformOrigin: Item.Center
+                scale: 1 - 0.06 * wrap.dim
+                Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
-            Rectangle {
-                anchors.fill: parent
-                radius: 18
-                color: tokens.surfaceRaised
-                border.width: 0
-                clip: true
-                layer.enabled: true
+                transformOrigin: Item.Center
 
-                Image {
-                    anchors.fill: parent
-                    source: "file://" + wrap.modelData
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    cache: true
-                    sourceSize.width: 600
-                    sourceSize.height: 400
-
-                    layer.enabled: true
-                    layer.effect: MultiEffect {
-                        maskEnabled: true
-                        maskSource: maskRect
-                    }
-                }
-
-                Item {
-                    id: maskRect
-                    anchors.fill: parent
-                    visible: false
-                    layer.enabled: true
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: 18
-                        color: "#ffffff"
-                    }
-                }
-
-                // Selection border — drawn above the image (a border on the
-                // background rect is covered by the filling image)
                 Rectangle {
                     anchors.fill: parent
                     radius: 18
-                    color: "transparent"
-                    border.width: wrap.isSelected ? 2 : 0
-                    border.color: tokens.accent
-                    Behavior on border.color { ColorAnimation { duration: 120 } }
-                }
+                    color: tokens.surfaceRaised
+                    border.width: 0
+                    clip: true
+                    layer.enabled: true
 
-                // Current wallpaper badge
-                Rectangle {
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.margins: 8
-                    visible: wrap.modelData === wallpaperService.current
-                    width: badgeText.implicitWidth + 14
-                    height: 22
-                    radius: 11
-                    color: Qt.rgba(tokens.accent.r, tokens.accent.g, tokens.accent.b, 0.25)
+                    Image {
+                        anchors.fill: parent
+                        source: "file://" + wrap.modelData
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        cache: true
+                        sourceSize.width: 600
+                        sourceSize.height: 400
 
-                    Text {
-                        id: badgeText
-                        anchors.centerIn: parent
-                        text: "Current"
-                        font.family: "Inter"
-                        font.pixelSize: 10
-                        font.weight: Font.DemiBold
-                        color: tokens.accent
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            maskEnabled: true
+                            maskSource: maskRect
+                        }
+                    }
+
+                    Item {
+                        id: maskRect
+                        anchors.fill: parent
+                        visible: false
+                        layer.enabled: true
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 18
+                            color: "#ffffff"
+                        }
+                    }
+
+                    // Selection border — drawn above the image (a border on the
+                    // background rect is covered by the filling image)
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 18
+                        color: "transparent"
+                        border.width: wrap.isSelected ? 2 : 0
+                        border.color: tokens.accent
+                        Behavior on border.color { ColorAnimation { duration: 120 } }
+                    }
+
+                    // Current wallpaper badge
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.margins: 8
+                        visible: wrap.modelData === wallpaperService.current
+                        width: badgeText.implicitWidth + 14
+                        height: 22
+                        radius: 11
+                        color: Qt.rgba(tokens.accent.r, tokens.accent.g, tokens.accent.b, 0.25)
+
+                        Text {
+                            id: badgeText
+                            anchors.centerIn: parent
+                            text: "Current"
+                            font.family: "Inter"
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                            color: tokens.accent
+                        }
                     }
                 }
-            }
 
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    list.currentIndex = wrap.index
-                    list.positionViewAtIndex(wrap.index, ListView.Center)
-                    root.applyCurrent()
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        list.currentIndex = wrap.index
+                        list.positionViewAtIndex(wrap.index, ListView.Center)
+                        root.applyCurrent()
+                    }
                 }
             }
         }
