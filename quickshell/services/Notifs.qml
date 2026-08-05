@@ -165,9 +165,33 @@ Singleton {
         property var notification
         property date timestamp: new Date()
         property bool closed: false
-        property bool popupDismissed: false  // popup hid on timeout — still live in the panel
+        property bool popupDismissed: false  // popup hid — still live in the panel
+        property bool popupActive: false  // popup is showing (countdown runs)
+        property real popupProgress: 1.0  // 1.0 → 0.0 over the popup timeout
         property bool hasAnimated: false  // Track if popup animation has played
         property bool read: false
+        
+        // Per-notification popup countdown. Lives on the wrapper (not on the
+        // popup card) so each message has its own independent timer, and
+        // popup-card churn (Repeater recreating items on model changes) can
+        // never restart another message's countdown.
+        readonly property Timer countdownTimer: Timer {
+            id: popupTimer
+            interval: 200
+            repeat: true
+            running: notifWrapper.popupActive
+            onTriggered: {
+                // Matches config.notifications.timeoutMs (7000). A constant —
+                // importing Config here would create an import cycle.
+                const step = 200 / 7000
+                if (notifWrapper.popupProgress > step) {
+                    notifWrapper.popupProgress -= step
+                } else {
+                    notifWrapper.popupProgress = 0
+                    notifWrapper.popupActive = false
+                }
+            }
+        }
         
         // Notification properties
         property string notifId: ""

@@ -72,14 +72,23 @@ Item {
 
     // Position the view on the current wallpaper. currentIndex must be set
     // first — StrictlyEnforceRange otherwise keeps the old current item
-    // pinned and the highlight never follows.
+    // pinned and the highlight never follows. The highlight animation is
+    // disabled during the initial positioning: for the first/last items the
+    // view clamps at the edge and an animated move visibly pushes and
+    // bounces back.
     function scrollToCurrent() {
         if (count === 0)
             return
         const idx = findCurrentLogicalIndex()
         if (idx >= 0) {
+            const prevDuration = list.highlightMoveDuration
+            const prevVelocity = list.highlightMoveVelocity
+            list.highlightMoveDuration = 0
+            list.highlightMoveVelocity = 0
             list.currentIndex = idx
             list.positionViewAtIndex(idx, ListView.Center)
+            list.highlightMoveDuration = prevDuration
+            list.highlightMoveVelocity = prevVelocity
         }
     }
 
@@ -218,28 +227,6 @@ Item {
                         border.width: wrap.isSelected ? 2 : 0
                         border.color: tokens.accent
                         Behavior on border.color { ColorAnimation { duration: 120 } }
-                    }
-
-                    // Current wallpaper badge
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        anchors.margins: 8
-                        visible: wrap.modelData === wallpaperService.current
-                        width: badgeText.implicitWidth + 14
-                        height: 22
-                        radius: 11
-                        color: Qt.rgba(tokens.accent.r, tokens.accent.g, tokens.accent.b, 0.25)
-
-                        Text {
-                            id: badgeText
-                            anchors.centerIn: parent
-                            text: "Current"
-                            font.family: "Inter"
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                            color: tokens.accent
-                        }
                     }
                 }
 

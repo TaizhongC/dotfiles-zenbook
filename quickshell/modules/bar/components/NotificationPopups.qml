@@ -98,15 +98,30 @@ PanelWindow {
                 property bool isDragging: false
                 property bool isExpanded: false
                 property real dragX: 0
-                property real timeoutProgress: 1.0
+                // Progress lives on the wrapper — recreated cards must not
+                // restart another message's countdown.
+                property real timeoutProgress: modelData.popupProgress
 
                 // ── Entrance animation properties ──
-                property real entryScale: 0.95
-                property real entryY: -16
+                property real entryScale: 0.6
+                property real entryY: 0
                 property real entryOpacity: 0
                 property real entryRotation: 0
 
                 Component.onCompleted: {
+                    modelData.popupActive = true
+                    // This card may be a fresh instance for a message whose
+                    // countdown already finished while the previous card was
+                    // destroyed (the Repeater recreates cards on every model
+                    // change). OnXChanged handlers don't fire for the initial
+                    // binding value, so the timeout would never be noticed.
+                    // The write is deferred — doing it synchronously re-enters
+                    // the activePopups binding evaluation (Repeater creation)
+                    // and triggers a binding loop warning.
+                    if (modelData.popupProgress <= 0 && !modelData.popupDismissed) {
+                        Qt.callLater(() => { modelData.popupDismissed = true })
+                        return
+                    }
                     if (!modelData.hasAnimated) {
                         modelData.hasAnimated = true
                         entranceAnim.start()
@@ -117,26 +132,19 @@ PanelWindow {
                     }
                 }
 
-                // ── Entrance: drop in from above ──
+                // ── Entrance: grow out of the top-right corner ──
                 SequentialAnimation {
                     id: entranceAnim
-
-                    PauseAnimation { duration: notifCard.index * 25 }
 
                     ParallelAnimation {
                         NumberAnimation {
                             target: notifCard; property: "entryOpacity"
                             from: 0; to: 1.0
-                            duration: 100; easing.type: Easing.OutQuad
+                            duration: 140; easing.type: Easing.OutQuad
                         }
                         NumberAnimation {
                             target: notifCard; property: "entryScale"
-                            from: 0.95; to: 1.0
-                            duration: 220; easing.type: Easing.OutCubic
-                        }
-                        NumberAnimation {
-                            target: notifCard; property: "entryY"
-                            from: -16; to: 0
+                            from: 0.6; to: 1.0
                             duration: 220; easing.type: Easing.OutCubic
                         }
                     }
@@ -229,18 +237,26 @@ PanelWindow {
                         target: notifCard; property: "height"
                         to: 0; duration: 100; easing.type: Easing.InCubic
                     }
+                    ScriptAction { script: modelData.popupDismissed = true }
                 }
 
                 function dismiss() {
                     isVisible = false
-                    modelData.popupDismissed = true
+                    modelData.popupActive = false
                     dismissAnim.start()
                 }
 
                 function swipeDismiss(direction) {
                     isVisible = false
+                    modelData.popupActive = false
                     if (direction > 0) exitRight.start()
                     else exitLeft.start()
+                }
+
+                // Wrapper countdown hit zero — time this card out
+                onTimeoutProgressChanged: {
+                    if (notifCard.timeoutProgress <= 0 && notifCard.isVisible)
+                        notifCard.dismiss()
                 }
 
                 // ───────────────────────────────────────────────────────────
@@ -253,7 +269,7 @@ PanelWindow {
                     x: notifCard.dragX
                     scale: notifCard.entryScale
                     opacity: notifCard.entryOpacity
-                    transformOrigin: Item.Top
+                    transformOrigin: Item.TopRight
 
                     // Physics-feel rotation during drag
                     rotation: notifCard.entryRotation +
@@ -318,36 +334,6 @@ PanelWindow {
                             shadowVerticalOffset: notifCard.isHovered ? 8 : 4
                         }
 
-                        // ── Top accent stripe (urgency indicator) ──
-                        Rectangle {
-                            anchors {
-                                top: parent.top
-                                left: parent.left
-                                right: parent.right
-                                topMargin: 1
-                                leftMargin: 20
-                                rightMargin: 20
-                            }
-                            height: 2.5
-                            radius: 1.25
-                            color: root._urgencyColor(modelData.urgency)
-                            opacity: modelData.urgency === NotificationUrgency.Low ? 0.3 : 0.65
-
-                            // Gentle pulse for critical
-                            SequentialAnimation on opacity {
-                                running: modelData.urgency === NotificationUrgency.Critical
-                                loops: Animation.Infinite
-                                NumberAnimation {
-                                    to: 0.3; duration: 1000
-                                    easing.type: Easing.InOutSine
-                                }
-                                NumberAnimation {
-                                    to: 0.9; duration: 1000
-                                    easing.type: Easing.InOutSine
-                                }
-                            }
-                        }
-
                         // ── Hover glow overlay ──
                         Rectangle {
                             anchors.fill: parent
@@ -404,29 +390,17 @@ PanelWindow {
                                     const c = root._urgencyColor(modelData.urgency)
                                     return Qt.rgba(c.r, c.g, c.b, 0.45)
                                 }
-
-                                NumberAnimation {
-                                    id: progressAnim
-                                    target: notifCard
-                                    property: "timeoutProgress"
-                                    from: 1.0; to: 0
-                                    duration: config.notifications.timeoutMs
-                                    running: notifCard.isVisible
-                                    onFinished: if (notifCard.isVisible) notifCard.dismiss()
-                                }
                             }
                         }
 
-                        // Pause progress on hover / drag
+                        // Pause the countdown on hover / drag
                         Connections {
                             target: notifCard
                             function onIsHoveredChanged() {
-                                if (progressAnim.running)
-                                    progressAnim.paused = notifCard.isHovered || notifCard.isDragging
+                                modelData.popupActive = !(notifCard.isHovered || notifCard.isDragging)
                             }
                             function onIsDraggingChanged() {
-                                if (progressAnim.running)
-                                    progressAnim.paused = notifCard.isHovered || notifCard.isDragging
+                                modelData.popupActive = !(notifCard.isHovered || notifCard.isDragging)
                             }
                         }
 
