@@ -115,6 +115,9 @@ Singleton {
             if (notification)
                 notification.read = true
         })
+        // New array identity so dependent bindings (filter/slice closures in
+        // recentNotifications, unreadCount, panel lists) re-evaluate.
+        root.notifications = [...root.notifications]
     }
 
     function _actionsToArray(actionList) {
@@ -236,6 +239,10 @@ Singleton {
             if (notification) {
                 notification.dismiss();
             }
+
+            // New array identity so bindings that filter on `closed` (e.g. the
+            // notification panel list) re-evaluate and drop this entry.
+            root.notifications = [...root.notifications]
 
             QsServices.Logger.debug("Notifs", `Notification closed (kept in history): ${summary}`)
         }

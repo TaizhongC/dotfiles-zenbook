@@ -3,6 +3,7 @@ import QtQuick.Layouts 6.10
 import Quickshell.Bluetooth
 import Quickshell.Io
 import "../../../services" as QsServices
+import "../../../components" as QsComponents
 
 FocusScope {
     id: popupPanel
@@ -12,6 +13,7 @@ FocusScope {
 
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property var pywal: QsServices.Pywal
+    readonly property var tokens: QsComponents.PanelTokens
     readonly property var devices: [...Bluetooth.devices.values].sort((a, b) => {
         if (a.connected !== b.connected) return b.connected - a.connected
         if (a.bonded !== b.bonded) return b.bonded - a.bonded
@@ -39,8 +41,8 @@ FocusScope {
 
     Rectangle {
         anchors.fill: parent
-        radius: 24
-        color: cSurface
+        radius: tokens.radiusRaised
+        color: tokens.surface
 
         ColumnLayout {
             id: contentColumn
@@ -158,7 +160,7 @@ FocusScope {
             // Device List
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(deviceList.contentHeight + 8, 260)
+                Layout.preferredHeight: devices.length === 0 ? 110 : Math.min(deviceList.contentHeight + 8, 260)
                 radius: 16
                 color: cSurfaceContainerHigh
                 clip: true

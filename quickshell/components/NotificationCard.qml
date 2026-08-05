@@ -64,7 +64,7 @@ Item {
                 Image {
                     anchors.centerIn: parent
                     width: 20; height: 20
-                    visible: notification?.appIcon && notification.appIcon.length > 0
+                    visible: !!notification?.appIcon && notification.appIcon.length > 0
                     source: root.iconSource(notification?.appIcon ?? "")
                     fillMode: Image.PreserveAspectFit
                     smooth: true; cache: true; asynchronous: true
@@ -184,7 +184,7 @@ Item {
             Layout.preferredHeight: 80
             radius: 10
             clip: true
-            visible: notification?.image && notification.image.length > 0
+            visible: !!notification?.image && notification.image.length > 0
             color: surfaceContainerHighColor
 
             Image {
@@ -200,7 +200,7 @@ Item {
         Flow {
             Layout.fillWidth: true
             spacing: 6
-            visible: showActions && notification?.actions && notification.actions.length > 0
+            visible: showActions && !!notification?.actions && notification.actions.length > 0
 
             Repeater {
                 model: notification?.actions ?? []

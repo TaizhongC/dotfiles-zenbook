@@ -7,12 +7,9 @@ import "../../../services" as QsServices
 Item {
     id: root
     
-    property var barWindow
-    property var bar  // Reference to Bar.qml root for inline popup toggle
-    
     readonly property var pywal: QsServices.Pywal
     readonly property var network: QsServices.Network
-    readonly property bool isHovered: mouseArea.containsMouse
+    readonly property bool isHovered: false
     readonly property bool isConnected: network.active !== null
     readonly property bool isEnabled: network.wifiEnabled
     readonly property int signalStrength: isConnected ? network.active.strength : 0
@@ -80,21 +77,6 @@ Item {
             }
             
             Behavior on color { ColorAnimation { duration: 150 } }
-        }
-    }
-    
-    // Click handler
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        anchors.margins: -4
-        cursorShape: Qt.PointingHandCursor
-        hoverEnabled: true
-        
-        onClicked: {
-            if (root.bar) {
-                root.bar.togglePopup("network")
-            }
         }
     }
 }

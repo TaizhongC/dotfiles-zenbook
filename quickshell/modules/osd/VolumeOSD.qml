@@ -46,10 +46,31 @@ PanelWindow {
         onTriggered: root.showing = false
     }
 
+    // The Audio service polls wpctl on a 250 ms timer, so on startup it
+    // reports 0 before the real volume arrives. Ignore changes until the
+    // baseline snapshot is taken, otherwise the OSD pops on every restart.
+    property bool initialized: false
+
+    Timer {
+        id: initTimer
+        interval: 800
+        running: true
+        repeat: false
+        onTriggered: {
+            root.currentVolume = audio.percentage
+            root.currentMuted = audio.muted
+            prevVolume = root.currentVolume
+            prevMuted = root.currentMuted
+            initialized = true
+        }
+    }
+
     Connections {
         target: audio
 
         function onPercentageChanged() {
+            if (!root.initialized)
+                return
             root.currentVolume = audio.percentage
             if (prevVolume !== -1 && root.currentVolume !== prevVolume)
                 root.show()
@@ -57,18 +78,13 @@ PanelWindow {
         }
 
         function onMutedChanged() {
+            if (!root.initialized)
+                return
             root.currentMuted = audio.muted
             if (root.currentMuted !== prevMuted)
                 root.show()
             prevMuted = root.currentMuted
         }
-    }
-
-    Component.onCompleted: {
-        root.currentVolume = audio.percentage
-        root.currentMuted = audio.muted
-        prevVolume = root.currentVolume
-        prevMuted = root.currentMuted
     }
 
     function show() {
@@ -81,8 +97,6 @@ PanelWindow {
         anchors.fill: parent
         radius: 22
         color: pywal.surfaceContainerHighest
-        border.width: 1
-        border.color: pywal.outlineVariant
 
         opacity: root.showing ? 1.0 : 0.0
         scale: root.showing ? 1.0 : 0.94

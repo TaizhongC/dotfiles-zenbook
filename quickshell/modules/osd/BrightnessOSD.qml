@@ -75,8 +75,6 @@ PanelWindow {
         anchors.fill: parent
         radius: 22
         color: pywal.surfaceContainerHighest
-        border.width: 1
-        border.color: pywal.outlineVariant
         
         opacity: root.showing ? 1.0 : 0.0
         scale: root.showing ? 1.0 : 0.94

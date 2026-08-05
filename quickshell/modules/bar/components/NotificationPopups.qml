@@ -293,7 +293,7 @@ PanelWindow {
                         color: root.m3Surface
 
                         // Hover-responsive border
-                        border.width: 1
+                        border.width: 0
                         border.color: {
                             if (notifCard.isHovered)
                                 return Qt.rgba(root.m3Primary.r, root.m3Primary.g, root.m3Primary.b, 0.2)

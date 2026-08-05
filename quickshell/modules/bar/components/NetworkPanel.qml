@@ -4,6 +4,7 @@ import QtQuick.Controls 6.10 as QQC
 import Quickshell.Io
 import "../../../services" as QsServices
 import "../../../config" as QsConfig
+import "../../../components" as QsComponents
 
 FocusScope {
     id: popupPanel
@@ -11,6 +12,7 @@ FocusScope {
     property bool shouldShow: false
     signal closeRequested()
     readonly property var pywal: QsServices.Pywal
+    readonly property var tokens: QsComponents.PanelTokens
     readonly property var network: QsServices.Network
     readonly property var appearance: QsConfig.AppearanceConfig
     readonly property var sortedNetworks: [...network.networks].sort((a, b) => {
@@ -45,8 +47,8 @@ FocusScope {
 
     Rectangle {
         anchors.fill: parent
-        radius: 24
-        color: cSurface
+        radius: tokens.radiusRaised
+        color: tokens.surface
 
         ColumnLayout {
             id: contentColumn

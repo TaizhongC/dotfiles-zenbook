@@ -8,11 +8,8 @@ import "../../../services" as QsServices
 Item {
     id: root
     
-    property var barWindow
-    property var bar  // Reference to Bar.qml root for inline popup toggle
-    
     readonly property var pywal: QsServices.Pywal
-    readonly property bool isHovered: mouseArea.containsMouse
+    readonly property bool isHovered: false
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property var connectedDevices: Bluetooth.devices.values.filter(d => d.connected)
     readonly property bool hasConnection: connectedDevices.length > 0
@@ -80,21 +77,6 @@ Item {
             }
             
             Behavior on color { ColorAnimation { duration: 150 } }
-        }
-    }
-    
-    // Click handler
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        anchors.margins: -4
-        cursorShape: Qt.PointingHandCursor
-        hoverEnabled: true
-        
-        onClicked: {
-            if (root.bar) {
-                root.bar.togglePopup("bluetooth")
-            }
         }
     }
 }

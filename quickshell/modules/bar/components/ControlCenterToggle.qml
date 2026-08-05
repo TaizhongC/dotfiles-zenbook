@@ -7,10 +7,10 @@ import "../../../components/effects"
 Item {
     id: root
     
-    property var controlCenter
+    property var centricPanel
     
     readonly property var pywal: QsServices.Pywal
-    readonly property bool isActive: controlCenter?.shouldShow ?? false
+    readonly property bool isActive: (centricPanel?.activePanel ?? "") === "control"
     readonly property bool isHovered: toggleMouse.containsMouse
     
     implicitWidth: controlCenterIcon.implicitWidth + 8
@@ -24,8 +24,8 @@ Item {
         cursorShape: Qt.PointingHandCursor
         
         onClicked: {
-            if (controlCenter) {
-                controlCenter.shouldShow = !controlCenter.shouldShow
+            if (centricPanel) {
+                centricPanel.togglePanel("control")
             }
         }
     }

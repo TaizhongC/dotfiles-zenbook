@@ -4,8 +4,6 @@ import QtQuick.Layouts 6.10
 import QtQuick.Effects
 import "components" as BarComponents
 import "../../components"
-import "../../components" as QsComponents
-import "../../components/effects"
 import "../../config" as QsConfig
 import "../../services" as QsServices
 
@@ -14,47 +12,9 @@ Item {
     
     property var screen
     property var barWindow
-    property var controlCenter
-    property var launcher
-    property var sidebar
-    property var dashboard
-    property var wallpaper
-    
-    // ═══ Inline Popup State ═══
-    property string activePopup: ""  // "", "bluetooth", "network"
-    property string lastActivePopup: "network"
-    readonly property bool hasPopup: activePopup !== ""
-    readonly property bool isPopupOpen: hasPopup || popupContentWrapper.opacity > 0
-    readonly property string currentPopup: hasPopup ? activePopup : lastActivePopup
-    readonly property real popupAreaHeight: isPopupOpen ? popupHost.height : 0
+    property var centricPanel
 
-    onActivePopupChanged: {
-        if (activePopup !== "") {
-            lastActivePopup = activePopup
-        }
-    }
-    
-    function togglePopup(name: string) {
-        if (activePopup === name) {
-            activePopup = ""
-        } else {
-            activePopup = name
-        }
-    }
-    function closePopup() {
-        activePopup = ""
-    }
-
-    function popupAnchorTarget() {
-        const p = currentPopup
-        if (p === "network" || p === "bluetooth") return connectivityPill
-        if (p === "wallpapers") return leftModule
-        if (p === "battery") return powerPill
-        return rightPills
-    }
-    
     readonly property var config: QsConfig.Config
-    readonly property var appearance: QsConfig.Config.appearanceTokens
     readonly property var pywal: QsServices.Pywal
     
     // ═══════════════════════════════════════════════════════════════════════
@@ -120,12 +80,6 @@ Item {
                         restoreMode: Binding.RestoreBinding
                     }
                 }
-                Item {
-                    Layout.preferredWidth: 22
-                    Layout.preferredHeight: 22
-                    Text { anchors.centerIn: parent; text: "󰸉"; font.family: "Material Design Icons"; font.pixelSize: 16; color: pywal.foreground }
-                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: if (root.wallpaper) root.wallpaper.shouldShow = !root.wallpaper.shouldShow }
-                }
             }
         }
         
@@ -156,38 +110,6 @@ Item {
                 anchors.centerIn: parent
                 asynchronous: true
                 source: "components/Clock.qml"
-
-                Binding {
-                    target: clockLoader.item
-                    property: "launcher"
-                    value: root.launcher
-                    when: clockLoader.status === Loader.Ready && root.launcher !== undefined
-                    restoreMode: Binding.RestoreBinding
-                }
-
-                Binding {
-                    target: clockLoader.item
-                    property: "controlCenter"
-                    value: root.controlCenter
-                    when: clockLoader.status === Loader.Ready && root.controlCenter !== undefined
-                    restoreMode: Binding.RestoreBinding
-                }
-
-                Binding {
-                    target: clockLoader.item
-                    property: "sidebar"
-                    value: root.sidebar
-                    when: clockLoader.status === Loader.Ready && root.sidebar !== undefined
-                    restoreMode: Binding.RestoreBinding
-                }
-
-                Binding {
-                    target: clockLoader.item
-                    property: "dashboard"
-                    value: root.dashboard
-                    when: clockLoader.status === Loader.Ready && root.dashboard !== undefined
-                    restoreMode: Binding.RestoreBinding
-                }
             }
         }
         
@@ -229,22 +151,6 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         asynchronous: true
                         source: "components/Network.qml"
-                        
-                        Binding {
-                            target: networkLoader.item
-                            property: "barWindow"
-                            value: root.barWindow
-                            when: networkLoader.status === Loader.Ready && root.barWindow !== undefined
-                            restoreMode: Binding.RestoreBinding
-                        }
-                        
-                        Binding {
-                            target: networkLoader.item
-                            property: "bar"
-                            value: root
-                            when: networkLoader.status === Loader.Ready
-                            restoreMode: Binding.RestoreBinding
-                        }
                     }
                     
                     // Separator
@@ -261,22 +167,6 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         asynchronous: true
                         source: "components/Bluetooth.qml"
-                        
-                        Binding {
-                            target: bluetoothLoader.item
-                            property: "barWindow"
-                            value: root.barWindow
-                            when: bluetoothLoader.status === Loader.Ready && root.barWindow !== undefined
-                            restoreMode: Binding.RestoreBinding
-                        }
-                        
-                        Binding {
-                            target: bluetoothLoader.item
-                            property: "bar"
-                            value: root
-                            when: bluetoothLoader.status === Loader.Ready
-                            restoreMode: Binding.RestoreBinding
-                        }
                     }
                 }
             }
@@ -399,18 +289,18 @@ Item {
                         source: "components/Battery.qml"
                     }
 
-                    // Control Center Toggle
+                    // Notification Bell (unread warning color, opens notification panel)
                     Loader {
-                        id: controlCenterLoader
+                        id: notificationBellLoader
                         anchors.verticalCenter: parent.verticalCenter
                         asynchronous: true
-                        source: "components/ControlCenterToggle.qml"
+                        source: "components/NotificationBell.qml"
                         
                         Binding {
-                            target: controlCenterLoader.item
-                            property: "controlCenter"
-                            value: root.controlCenter
-                            when: controlCenterLoader.status === Loader.Ready && root.controlCenter !== undefined
+                            target: notificationBellLoader.item
+                            property: "centricPanel"
+                            value: root.centricPanel
+                            when: notificationBellLoader.status === Loader.Ready && root.centricPanel !== undefined
                             restoreMode: Binding.RestoreBinding
                         }
                     }
@@ -480,165 +370,4 @@ Item {
         }
     }
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // INLINE POPUP HOST — popups expand below the bar within the same window
-    // ═══════════════════════════════════════════════════════════════════════
-    Item {
-        id: popupHost
-        anchors.top: barContainer.bottom
-        anchors.topMargin: 4
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: root.isPopupOpen ? popupContentWrapper.height + 12 : 0
-        clip: true
-
-        // Match Control Center behavior: close after leaving popup focus area
-        property bool mouseHasEntered: false
-        property bool mouseInside: popupHoverHandler.hovered
-
-        onVisibleChanged: {
-            if (!visible) {
-                mouseHasEntered = false
-                popupCloseTimer.stop()
-            }
-        }
-
-        Connections {
-            target: root
-            function onHasPopupChanged() {
-                if (root.hasPopup) {
-                    popupHost.mouseHasEntered = false
-                    popupCloseTimer.stop()
-                } else {
-                    popupCloseTimer.stop()
-                }
-            }
-        }
-
-        Timer {
-            id: popupCloseTimer
-            interval: 400
-            onTriggered: {
-                if (!popupHost.mouseInside && popupHost.mouseHasEntered && root.hasPopup) {
-                    root.closePopup()
-                }
-            }
-        }
-        
-        Behavior on height {
-            NumberAnimation {
-                duration: 0
-                easing.bezierCurve: root.appearance.anim.popup.curve
-            }
-        }
-        
-        // Click-outside scrim to dismiss popup
-        MouseArea {
-            anchors.fill: parent
-            visible: root.hasPopup
-            onClicked: root.closePopup()
-        }
-        
-        // Popup content container — positioned below the triggering pill
-        Item {
-            id: popupContentWrapper
-            y: 4
-            x: {
-                // Center popup under its trigger and clamp to host bounds
-                const w = width
-                const hostPadding = 12
-                const anchor = root.popupAnchorTarget()
-
-                if (anchor) {
-                    const centerInHost = anchor.mapToItem(popupHost, anchor.width / 2, anchor.height).x
-                    return Math.max(hostPadding, Math.min(popupHost.width - w - hostPadding, centerInHost - (w / 2)))
-                }
-
-                return Math.max(hostPadding, popupHost.width - w - hostPadding)
-            }
-            width: root.currentPopup === "network" ? 340 : root.currentPopup === "wallpapers" ? 520 : 320
-            height: {
-                if (btPanelLoader.active && btPanelLoader.item)
-                    return btPanelLoader.item.implicitHeight
-                if (netPanelLoader.active && netPanelLoader.item)
-                    return netPanelLoader.item.implicitHeight
-                if (wallpaperPanelLoader.active && wallpaperPanelLoader.item)
-                    return wallpaperPanelLoader.item.implicitHeight
-                return 0
-            }
-            
-            // Entry animation using central PanelMotion module
-            scale: root.hasPopup ? 1.0 : QsComponents.PanelMotion.closedScale
-            opacity: root.hasPopup ? 1.0 : 0.0
-            transformOrigin: Item.TopRight
-            
-            Behavior on scale {
-                NumberAnimation {
-                    duration: QsComponents.PanelMotion.duration
-                    easing.bezierCurve: QsComponents.PanelMotion.curve
-                }
-            }
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: QsComponents.PanelMotion.fadeDuration
-                    easing.bezierCurve: QsComponents.PanelMotion.curve
-                }
-            }
-
-            HoverHandler {
-                id: popupHoverHandler
-                onHoveredChanged: {
-                    if (hovered) {
-                        popupHost.mouseHasEntered = true
-                        popupCloseTimer.stop()
-                    } else if (popupHost.mouseHasEntered && root.hasPopup) {
-                        popupCloseTimer.restart()
-                    }
-                }
-            }
-            
-            // Bluetooth Panel
-            Loader {
-                id: btPanelLoader
-                anchors.fill: parent
-                active: root.currentPopup === "bluetooth" && root.isPopupOpen
-                source: "components/BluetoothPanel.qml"
-                
-                onLoaded: {
-                    item.shouldShow = true
-                    item.forceActiveFocus()
-                }
-                
-                Connections {
-                    target: btPanelLoader.item
-                    function onCloseRequested() { root.closePopup() }
-                }
-            }
-            
-            // Network Panel
-            Loader {
-                id: netPanelLoader
-                anchors.fill: parent
-                active: root.currentPopup === "network" && root.isPopupOpen
-                source: "components/NetworkPanel.qml"
-                
-                onLoaded: {
-                    item.shouldShow = true
-                    item.forceActiveFocus()
-                }
-                
-                Connections {
-                    target: netPanelLoader.item
-                    function onCloseRequested() { root.closePopup() }
-                }
-            }
-            Loader {
-                id: wallpaperPanelLoader
-                anchors.fill: parent
-                active: root.currentPopup === "wallpapers" && root.isPopupOpen
-                source: "components/WallpaperPanel.qml"
-                Connections { target: wallpaperPanelLoader.item; function onCloseRequested() { root.closePopup() } }
-            }
-        }
-    }
 }

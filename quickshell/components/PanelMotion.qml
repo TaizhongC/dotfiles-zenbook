@@ -14,4 +14,8 @@ QtObject {
     readonly property real closedScale: appearance ? appearance.anim.popup.closedScale : 0.98
     readonly property var curve: appearance ? appearance.anim.popup.curve : [0.05, 0.7, 0.1, 1.0]
     readonly property int offset: appearance ? appearance.anim.popup.offset : 12
+
+    // Panel-to-panel morphing (size transition of the shared card)
+    readonly property int morphDuration: 220
+    readonly property int contentFade: 120
 }

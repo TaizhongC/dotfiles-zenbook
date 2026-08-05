@@ -1,8 +1,6 @@
 import QtQuick 6.10
-import QtQuick.Layouts 6.10
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Io
 import "../../config" as QsConfig
 import "../../services" as QsServices
 import "../../components" as QsComponents
@@ -29,49 +27,30 @@ PanelWindow {
     readonly property var config: QsConfig.Config
     readonly property var appearance: QsConfig.AppearanceConfig
     readonly property var pywal: QsServices.Pywal
+    readonly property var tokens: QsComponents.PanelTokens
 
     screen: Quickshell.screens[0]
 
-    // Position anchoring
+    // Full-screen transparent layer. The panel card is centered on screen and
+    // the layer never reserves space for windows (exclusiveZone: 0), so
+    // opening any panel never squeezes hyprland windows.
+    //
+    // The window unmaps as soon as a panel fully closes — an always-mapped
+    // full-screen layer keeps an input region and blocks clicks on windows.
     anchors {
         top: true
-        right: activePanel === "control" || activePanel === "notification"
-        left: activePanel === "wallpaper"
+        bottom: true
+        left: true
+        right: true
     }
+    exclusiveZone: 0
 
-    margins {
-        top: (config.bar.height ?? 36) + QsComponents.PanelMotion.offset
-        right: (activePanel === "control" || activePanel === "notification") ? 12 : 0
-        left: activePanel === "wallpaper" ? 12 : 0
-    }
-
-    // Dynamic target width and height based on activePanel mode
-    readonly property int targetWidth: {
-        if (activePanel === "control") return 780
-        if (activePanel === "notification") return 440
-        if (activePanel === "calendar") return 440
-        if (activePanel === "wallpaper") return 520
-        if (activePanel === "launcher") return 520
-        return 440
-    }
-
-    readonly property int targetHeight: {
-        if (activePanel === "control") return 540
-        if (activePanel === "notification") return 720
-        if (activePanel === "calendar") return 360
-        if (activePanel === "wallpaper") return 360
-        if (activePanel === "launcher") return 460
-        return 400
-    }
-
-    implicitWidth: targetWidth
-    implicitHeight: shouldShow || panelContent.opacity > 0 ? targetHeight : 0
-    visible: shouldShow || panelContent.opacity > 0
+    visible: root.shouldShow || panelCard.opacity > 0
     color: "transparent"
 
     WlrLayershell.keyboardFocus: shouldShow ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
-    // Dismiss scrim
+    // Dismiss scrim — only active while a panel is open
     MouseArea {
         anchors.fill: parent
         z: -1
@@ -87,41 +66,65 @@ PanelWindow {
 
         Keys.onEscapePressed: root.closePanel()
 
-        // Standalone entrance / exit motion using unified PanelMotion
-        transformOrigin: activePanel === "wallpaper" ? Item.TopLeft : (activePanel === "control" || activePanel === "notification") ? Item.TopRight : Item.Top
-        scale: root.shouldShow ? 1.0 : QsComponents.PanelMotion.closedScale
-        opacity: root.shouldShow ? 1.0 : 0.0
+    // Dynamic target width and height based on activePanel mode
+    readonly property int targetWidth: {
+        if (activePanel === "control") return 820
+        if (activePanel === "notification") return 520
+        if (activePanel === "calendar") return 440
+        if (activePanel === "wallpaper") return 520
+        if (activePanel === "launcher") return 560
+        return 440
+    }
 
-        Behavior on scale {
-            NumberAnimation {
-                duration: QsComponents.PanelMotion.duration
-                easing.bezierCurve: QsComponents.PanelMotion.curve
-            }
-        }
-        Behavior on opacity {
-            NumberAnimation {
-                duration: QsComponents.PanelMotion.fadeDuration
-                easing.bezierCurve: QsComponents.PanelMotion.curve
-            }
+        readonly property int targetHeight: {
+            if (activePanel === "control") return 700
+            if (activePanel === "notification") return 720
+            if (activePanel === "calendar") return 420
+            if (activePanel === "wallpaper") return 360
+            if (activePanel === "launcher") return 560
+            return 400
         }
 
-        // Morphing Base Panel Surface
+        // Morphing Base Panel Surface — centered on screen
         Rectangle {
             id: panelCard
             anchors.centerIn: parent
-            width: root.targetWidth
-            height: root.targetHeight
-            radius: 28
-            color: pywal.surfaceContainerHighest
-            border.width: 1
-            border.color: pywal.outlineVariant
+            width: panelContent.targetWidth
+            height: panelContent.targetHeight
+            radius: tokens.radius
+            color: tokens.surface
             clip: true
 
+            visible: root.shouldShow || panelCard.opacity > 0
+
+            // Unified entrance / exit motion from the screen center
+            transformOrigin: Item.Center
+            scale: root.shouldShow ? 1.0 : QsComponents.PanelMotion.closedScale
+            opacity: root.shouldShow ? 1.0 : 0.0
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: QsComponents.PanelMotion.duration
+                    easing.bezierCurve: QsComponents.PanelMotion.curve
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: QsComponents.PanelMotion.fadeDuration
+                    easing.bezierCurve: QsComponents.PanelMotion.curve
+                }
+            }
             Behavior on width {
-                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: QsComponents.PanelMotion.morphDuration
+                    easing.type: Easing.OutCubic
+                }
             }
             Behavior on height {
-                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: QsComponents.PanelMotion.morphDuration
+                    easing.type: Easing.OutCubic
+                }
             }
 
             // Inner content container with smooth cross-fade transition
@@ -136,7 +139,15 @@ PanelWindow {
                     active: root.activePanel === "wallpaper" || opacity > 0
                     source: "../wallpaper/WallpaperPanelContent.qml"
                     opacity: root.activePanel === "wallpaper" ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                    Behavior on opacity { NumberAnimation { duration: QsComponents.PanelMotion.contentFade } }
+
+                    Binding {
+                        target: wallpaperLoader.item
+                        property: "panelActive"
+                        value: root.activePanel === "wallpaper"
+                        when: wallpaperLoader.status === Loader.Ready
+                        restoreMode: Binding.RestoreBinding
+                    }
                 }
 
                 // 2. Notification Panel (Super + N)
@@ -147,10 +158,10 @@ PanelWindow {
                     active: root.activePanel === "notification" || opacity > 0
                     source: "../sidebar/SidebarPanelContent.qml"
                     opacity: root.activePanel === "notification" ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                    Behavior on opacity { NumberAnimation { duration: QsComponents.PanelMotion.contentFade } }
                 }
 
-                // 3. Calendar Panel (Super + D)
+                // 3. Calendar Panel (Super + D / clock click)
                 Loader {
                     id: calendarLoader
                     anchors.fill: parent
@@ -158,7 +169,7 @@ PanelWindow {
                     active: root.activePanel === "calendar" || opacity > 0
                     source: "../dashboard/CalendarPanelContent.qml"
                     opacity: root.activePanel === "calendar" ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                    Behavior on opacity { NumberAnimation { duration: QsComponents.PanelMotion.contentFade } }
                 }
 
                 // 4. Control & Networks Combined Panel (Super + P)
@@ -169,7 +180,12 @@ PanelWindow {
                     active: root.activePanel === "control" || opacity > 0
                     source: "CombinedControlPanel.qml"
                     opacity: root.activePanel === "control" ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                    Behavior on opacity { NumberAnimation { duration: QsComponents.PanelMotion.contentFade } }
+
+                    Connections {
+                        target: controlLoader.item
+                        function onCloseRequested() { root.closePanel() }
+                    }
                 }
 
                 // 5. App Launcher Panel (Super + Space)
@@ -180,7 +196,20 @@ PanelWindow {
                     active: root.activePanel === "launcher" || opacity > 0
                     source: "../launcher/LauncherPanelContent.qml"
                     opacity: root.activePanel === "launcher" ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                    Behavior on opacity { NumberAnimation { duration: QsComponents.PanelMotion.contentFade } }
+
+                    Binding {
+                        target: launcherLoader.item
+                        property: "panelActive"
+                        value: root.activePanel === "launcher"
+                        when: launcherLoader.status === Loader.Ready
+                        restoreMode: Binding.RestoreBinding
+                    }
+
+                    Connections {
+                        target: launcherLoader.item
+                        function onCloseRequested() { root.closePanel() }
+                    }
                 }
             }
         }

@@ -12,6 +12,11 @@ ColumnLayout {
 
     readonly property var notifs: QsServices.Notifs
     readonly property var pywal: QsServices.Pywal
+    // Closed notifications stay in the 24h history (for popup dismissal state)
+    // but must leave the panel — otherwise the close button appears dead.
+    readonly property var visibleNotifications: (notifs.recentNotifications ?? [])
+        .filter(n => !!n && !n.closed)
+        .slice(0, QsConfig.Config.sidebar.maxHistory)
 
     RowLayout {
         Layout.fillWidth: true
@@ -24,7 +29,7 @@ ColumnLayout {
         }
         Item { Layout.fillWidth: true }
         Text {
-            text: `${notifs.list.length} total`
+            text: `${visibleNotifications.length} total`
             font.family: QsConfig.Config.appearance.fontFamily
             font.pixelSize: 12
             color: pywal.onSurfaceMuted
@@ -47,12 +52,24 @@ ColumnLayout {
         Layout.fillHeight: true
         clip: true
         spacing: 10
-        model: notifs.list
+        model: root.visibleNotifications
 
-        delegate: NotificationCard {
+        delegate: Rectangle {
+            id: notifDelegate
+            required property var modelData
+
             width: ListView.view.width
-            notification: modelData
-            pywal: root.pywal
+            radius: 16
+            color: notifDelegate.modelData.read
+                ? "transparent"
+                : Qt.rgba(pywal.primary.r, pywal.primary.g, pywal.primary.b, 0.08)
+            Behavior on color { ColorAnimation { duration: 150 } }
+
+            NotificationCard {
+                anchors.fill: parent
+                notification: notifDelegate.modelData
+                pywal: root.pywal
+            }
         }
     }
 }
