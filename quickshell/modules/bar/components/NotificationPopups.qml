@@ -102,12 +102,6 @@ PanelWindow {
                 // restart another message's countdown.
                 property real timeoutProgress: modelData.popupProgress
 
-                // ── Entrance animation properties ──
-                property real entryScale: 0.6
-                property real entryY: 0
-                property real entryOpacity: 0
-                property real entryRotation: 0
-
                 Component.onCompleted: {
                     modelData.popupActive = true
                     // This card may be a fresh instance for a message whose
@@ -122,31 +116,13 @@ PanelWindow {
                         Qt.callLater(() => { modelData.popupDismissed = true })
                         return
                     }
+                    // Entrance state animates on the wrapper — a card recreated
+                    // mid-animation (model churn) displays the current values
+                    // instead of restarting the motion.
                     if (!modelData.hasAnimated) {
                         modelData.hasAnimated = true
-                        entranceAnim.start()
-                    } else {
-                        entryScale = 1.0
-                        entryY = 0
-                        entryOpacity = 1.0
-                    }
-                }
-
-                // ── Entrance: grow out of the top-right corner ──
-                SequentialAnimation {
-                    id: entranceAnim
-
-                    ParallelAnimation {
-                        NumberAnimation {
-                            target: notifCard; property: "entryOpacity"
-                            from: 0; to: 1.0
-                            duration: 140; easing.type: Easing.OutQuad
-                        }
-                        NumberAnimation {
-                            target: notifCard; property: "entryScale"
-                            from: 0.6; to: 1.0
-                            duration: 220; easing.type: Easing.OutCubic
-                        }
+                        modelData.popupStagger = notifCard.index * 35
+                        modelData.entranceAnim.start()
                     }
                 }
 
@@ -161,11 +137,11 @@ PanelWindow {
                             duration: 180; easing.type: Easing.InCubic
                         }
                         NumberAnimation {
-                            target: notifCard; property: "entryRotation"
+                            target: modelData; property: "popupEntryRotation"
                             to: 4; duration: 180; easing.type: Easing.InQuad
                         }
                         NumberAnimation {
-                            target: notifCard; property: "entryOpacity"
+                            target: modelData; property: "popupEntryOpacity"
                             to: 0.3; duration: 180; easing.type: Easing.InQuad
                         }
                     }
@@ -187,11 +163,11 @@ PanelWindow {
                             duration: 180; easing.type: Easing.InCubic
                         }
                         NumberAnimation {
-                            target: notifCard; property: "entryRotation"
+                            target: modelData; property: "popupEntryRotation"
                             to: -4; duration: 180; easing.type: Easing.InQuad
                         }
                         NumberAnimation {
-                            target: notifCard; property: "entryOpacity"
+                            target: modelData; property: "popupEntryOpacity"
                             to: 0.3; duration: 180; easing.type: Easing.InQuad
                         }
                     }
@@ -212,7 +188,7 @@ PanelWindow {
                         easing.type: Easing.OutBack; easing.overshoot: 1.3
                     }
                     NumberAnimation {
-                        target: notifCard; property: "entryRotation"
+                        target: modelData; property: "popupEntryRotation"
                         to: 0; duration: 200; easing.type: Easing.OutCubic
                     }
                 }
@@ -225,11 +201,11 @@ PanelWindow {
 
                     ParallelAnimation {
                         NumberAnimation {
-                            target: notifCard; property: "entryScale"
+                            target: modelData; property: "popupEntryScale"
                             to: 0.88; duration: 160; easing.type: Easing.InCubic
                         }
                         NumberAnimation {
-                            target: notifCard; property: "entryOpacity"
+                            target: modelData; property: "popupEntryOpacity"
                             to: 0; duration: 160; easing.type: Easing.InQuad
                         }
                     }
@@ -267,15 +243,15 @@ PanelWindow {
                     width: parent.width
                     height: cardBg.height
                     x: notifCard.dragX
-                    scale: notifCard.entryScale
-                    opacity: notifCard.entryOpacity
-                    transformOrigin: Item.TopRight
+                    scale: modelData.popupEntryScale
+                    opacity: modelData.popupEntryOpacity
+                    transformOrigin: Item.Top
 
                     // Physics-feel rotation during drag
-                    rotation: notifCard.entryRotation +
+                    rotation: modelData.popupEntryRotation +
                               (notifCard.isDragging ? notifCard.dragX * 0.015 : 0)
 
-                    transform: Translate { y: notifCard.entryY }
+                    transform: Translate { y: modelData.popupEntryY }
 
                     // ── Swipe indicator (behind card) ──
                     Rectangle {
