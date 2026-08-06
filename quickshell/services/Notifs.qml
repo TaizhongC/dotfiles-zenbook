@@ -168,24 +168,10 @@ Singleton {
         property bool popupDismissed: false  // popup hid — still live in the panel
         property bool popupActive: false  // popup is showing (countdown runs)
         property real popupProgress: 1.0  // 1.0 → 0.0 over the popup timeout
-        property bool hasAnimated: false  // Track if popup animation has played
         property bool read: false
 
-        // Entrance animation state lives on the wrapper: the popup Repeater
-        // destroys and recreates cards on every model change, and a card that
-        // is recreated mid-animation must display the current values instead
-        // of restarting (that is what made bursts of <maxVisible cards look
-        // jagged).
-        property real popupEntryScale: 0.82
-        property real popupEntryY: -24
-        property real popupEntryOpacity: 0
-        property real popupEntryRotation: 0
-        property int popupStagger: 0
-        
-        // Per-notification popup countdown. Lives on the wrapper (not on the
-        // popup card) so each message has its own independent timer, and
-        // popup-card churn (Repeater recreating items on model changes) can
-        // never restart another message's countdown.
+        // Per-notification popup countdown. Lives on the wrapper so each
+        // message has its own independent timer.
         readonly property Timer countdownTimer: Timer {
             id: popupTimer
             interval: 200
@@ -200,31 +186,6 @@ Singleton {
                 } else {
                     notifWrapper.popupProgress = 0
                     notifWrapper.popupActive = false
-                }
-            }
-        }
-
-        // Entrance animation, owned by the wrapper so it survives popup-card
-        // destruction (the Repeater recreates cards on model changes).
-        readonly property SequentialAnimation entranceAnim: SequentialAnimation {
-            PauseAnimation { duration: notifWrapper.popupStagger }
-            ParallelAnimation {
-                NumberAnimation {
-                    target: notifWrapper; property: "popupEntryOpacity"
-                    from: 0; to: 1.0
-                    duration: 100; easing.type: Easing.OutQuad
-                }
-                NumberAnimation {
-                    target: notifWrapper; property: "popupEntryScale"
-                    from: 0.82; to: 1.0
-                    duration: 380
-                    easing.type: Easing.OutBack; easing.overshoot: 1.6
-                }
-                NumberAnimation {
-                    target: notifWrapper; property: "popupEntryY"
-                    from: -28; to: 0
-                    duration: 380
-                    easing.type: Easing.OutBack; easing.overshoot: 1.2
                 }
             }
         }

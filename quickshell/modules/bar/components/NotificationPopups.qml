@@ -1,5 +1,4 @@
 import QtQuick 6.10
-import QtQuick.Layouts 6.10
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.Notifications
@@ -9,7 +8,13 @@ import "../../../config" as QsConfig
 import "../../../components"
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Material 3 Expressive Notification Popups — Revamped
+// Material 3 Notification Popups — simple, smooth motion
+//
+// Cards are managed imperatively (no Repeater / model churn): every card is
+// created/destroyed explicitly and positioned with a `Behavior on y`, so
+// sliding and fading can never be interrupted by a delegate being recreated.
+// Entrance = gentle fade + scale. Exit = fade + collapse in parallel, while
+// the cards below slide up over the vacated space.
 // ═══════════════════════════════════════════════════════════════════════════
 PanelWindow {
     id: root
@@ -40,469 +45,451 @@ PanelWindow {
         return m3Primary
     }
 
-    // Active popups — newest first, capped to maxVisible. Timeout-dismissed
-    // cards are excluded so they never re-materialize from the model (e.g.
-    // after a config reload) — they remain live in the notification panel.
-    readonly property var activePopups: (notifs.notifications || [])
-        .filter(n => !!n && !n.closed && !n.popupDismissed)
-        .slice(0, config.notifications.maxVisible)
+    // ── Single-card queue state ──
+    property var currentCard: null   // the card on screen (if any)
+    property var exitingCard: null   // card animating out (still fading)
+    property int liveCards: 0        // drives window visibility
+    property real totalHeight: 0
+
+    // Popup-worthy wrappers, newest first. Only the OLDEST pending message is
+    // shown at a time (FIFO queue); the rest wait for their turn.
+    function pending() {
+        return (notifs.notifications || [])
+            .filter(n => !!n && !n.closed && !n.popupDismissed)
+            .slice(0, config.notifications.maxVisible)
+    }
+
+    // Window height: the visible card plus any card still animating out.
+    function layout() {
+        var h = 0
+        if (currentCard) h += currentCard.cardHeight
+        if (exitingCard) h += exitingCard.height
+        totalHeight = h
+    }
+
+    function showCard(wrapper) {
+        if (currentCard) return
+        currentCard = cardComponent.createObject(cardLayer, { wrapper: wrapper })
+        if (!currentCard) return
+        // Size the window BEFORE showing it: the first card is created while
+        // the window is still hidden, and a window that grows into place
+        // (Behavior on implicitHeight) while the entrance plays is what made
+        // the first popup look jagged.
+        layout()
+        liveCards = 1
+        // Defer the entrance one tick: the layer surface only maps after this
+        // JS frame, and starting the animation earlier would lose the opening
+        // frames of the first card.
+        Qt.callLater(currentCard.startEntrance)
+    }
+
+    // Start the fade + scale-out of the current card; `swipeX` adds a
+    // horizontal slide-out (nonzero when dismissed by swiping).
+    function exitCard(closeAfterExit, swipeX) {
+        const card = currentCard
+        if (!card || card.exiting) return
+        card.exiting = true
+        card.isVisible = false
+        card.closeAfterExit = closeAfterExit
+        card.wrapper.popupActive = false
+        currentCard = null
+        exitingCard = card
+        layout()
+        card.startExit(swipeX || 0)
+    }
+
+    function dismissCard() { exitCard(false, 0) }
+    function swipeDismiss(direction) { exitCard(true, direction) }
+
+    function cardExited(card) {
+        const w = card.wrapper
+        exitingCard = null
+        card.destroy()
+        if (card.closeAfterExit) {
+            if (w && !w.closed) w.close()
+        } else if (w) {
+            w.popupDismissed = true
+        }
+        // Show the next queued message (if any) — this also keeps the window
+        // visible across the swap.
+        syncPopups()
+        layout()
+    }
+
+    // Advance the queue: when nothing is showing, display the oldest pending
+    // message; otherwise wait.
+    function syncPopups() {
+        const queue = root.pending()
+        if (!currentCard && !exitingCard) {
+            if (queue.length > 0) showCard(queue[queue.length - 1])
+            else liveCards = 0
+        }
+    }
+
+    Connections {
+        target: notifs
+        function onNotificationsChanged() { root.syncPopups() }
+    }
 
     // ── Window Setup ──
     screen: Quickshell.screens[0]
     anchors { top: true; right: true }
     margins { top: config.notifications.margin; right: config.notifications.margin }
-    visible: activePopups.length > 0
+    visible: liveCards > 0
     color: "transparent"
     implicitWidth: config.notifications.popupWidth
-    implicitHeight: notifColumn.implicitHeight
+    implicitHeight: root.totalHeight
+    // No Behavior on implicitHeight: the window snaps to its content size.
+    // A growing window combined with the card entrance is what made the
+    // first popup look jagged.
 
-    Behavior on implicitHeight {
-        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+    Component.onCompleted: syncPopups()
+
+    // Container for the cards. Cards must be created with a QQuickItem parent
+    // (not the window itself) or Qt's auto-parenting fails and they never
+    // render.
+    Item {
+        id: cardLayer
+        width: root.width
+        height: root.height
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // NOTIFICATION STACK
+    // NOTIFICATION CARD
     // ═══════════════════════════════════════════════════════════════════════
-    Column {
-        id: notifColumn
-        width: parent.width
-        spacing: config.notifications.spacing
+    Component {
+        id: cardComponent
 
-        move: Transition {
-            NumberAnimation {
-                properties: "y"
-                duration: 180
-                easing.type: Easing.OutCubic
+        Item {
+            id: card
+
+            required property var wrapper
+
+            // ── Motion state ──
+            property bool isVisible: true
+            property bool isHovered: false
+            property bool isDragging: false
+            property bool exiting: false
+            property bool closeAfterExit: false
+            readonly property real cardHeight: cardBg.height
+
+            width: config.notifications.popupWidth
+            height: cardBg.height
+            clip: true
+            transformOrigin: Item.TopRight
+
+            // ── Entrance: gentle fade + scale from the top-right corner ──
+            // Driven by an explicit animation (not bindings/Behaviors): it
+            // starts with the card fully transparent and animates in.
+            ParallelAnimation {
+                id: entranceAnim
+
+                NumberAnimation {
+                    target: card; property: "opacity"
+                    from: 0; to: 1; duration: 140; easing.type: Easing.OutQuad
+                }
+                NumberAnimation {
+                    target: card; property: "scale"
+                    from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic
+                }
             }
-        }
 
-        Repeater {
-            model: root.activePopups
+            // ── Countdown (lives on the wrapper) ──
+            property real timeoutProgress: wrapper.popupProgress
 
-            // ───────────────────────────────────────────────────────────────
-            // NOTIFICATION CARD
-            // ───────────────────────────────────────────────────────────────
-            Item {
-                id: notifCard
+            Component.onCompleted: wrapper.popupActive = true
 
-                required property var modelData
-                required property int index
+            function startEntrance() {
+                if (!card.exiting)
+                    entranceAnim.start()
+            }
 
-                width: config.notifications.popupWidth
-                height: cardWrapper.height
-                clip: true
+            onTimeoutProgressChanged: {
+                if (card.timeoutProgress <= 0 && card.isVisible)
+                    root.dismissCard()
+            }
 
-                // ── State ──
-                property bool isVisible: true
-                property bool isHovered: false
-                property bool isDragging: false
-                property bool isExpanded: false
-                property real dragX: 0
-                // Progress lives on the wrapper — recreated cards must not
-                // restart another message's countdown.
-                property real timeoutProgress: modelData.popupProgress
+            // Daemon closed this notification while it was showing — move on
+            // to the next queued message right away.
+            Connections {
+                target: wrapper
+                function onPopupDismissedChanged() {
+                    if (wrapper.popupDismissed && card.isVisible)
+                        root.dismissCard()
+                }
+            }
 
-                Component.onCompleted: {
-                    modelData.popupActive = true
-                    // This card may be a fresh instance for a message whose
-                    // countdown already finished while the previous card was
-                    // destroyed (the Repeater recreates cards on every model
-                    // change). OnXChanged handlers don't fire for the initial
-                    // binding value, so the timeout would never be noticed.
-                    // The write is deferred — doing it synchronously re-enters
-                    // the activePopups binding evaluation (Repeater creation)
-                    // and triggers a binding loop warning.
-                    if (modelData.popupProgress <= 0 && !modelData.popupDismissed) {
-                        Qt.callLater(() => { modelData.popupDismissed = true })
-                        return
-                    }
-                    // Entrance state animates on the wrapper — a card recreated
-                    // mid-animation (model churn) displays the current values
-                    // instead of restarting the motion.
-                    if (!modelData.hasAnimated) {
-                        modelData.hasAnimated = true
-                        modelData.popupStagger = notifCard.index * 35
-                        modelData.entranceAnim.start()
+            // ── Exit: fade + scale toward the top-right corner + collapse
+            // (+ optional slide out) ──
+            ParallelAnimation {
+                id: exitAnim
+
+                NumberAnimation {
+                    target: card; property: "opacity"
+                    to: 0; duration: 140; easing.type: Easing.InQuad
+                }
+                NumberAnimation {
+                    target: card; property: "scale"
+                    to: 0; duration: 180; easing.type: Easing.InCubic
+                }
+                NumberAnimation {
+                    target: card; property: "height"
+                    to: 0; duration: 180; easing.type: Easing.InCubic
+                }
+                NumberAnimation {
+                    id: exitXAnim
+                    target: card; property: "x"
+                    to: 0; duration: 160; easing.type: Easing.InCubic
+                }
+                onFinished: root.cardExited(card)
+            }
+
+            function startExit(swipeX) {
+                if (swipeX !== 0) {
+                    exitXAnim.to = swipeX > 0
+                        ? config.notifications.popupWidth + 60
+                        : -(config.notifications.popupWidth + 60)
+                    exitXAnim.duration = 160
+                } else {
+                    exitXAnim.to = card.x   // no-op — keep x in place
+                    exitXAnim.duration = 0
+                }
+                exitAnim.start()
+            }
+
+            // ── Snap back after an aborted swipe ──
+            ParallelAnimation {
+                id: snapBack
+
+                NumberAnimation {
+                    target: card; property: "x"
+                    to: 0; duration: 280
+                    easing.type: Easing.OutBack; easing.overshoot: 1.2
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // CARD BODY
+            // ═══════════════════════════════════════════════════════════════
+            Rectangle {
+                id: cardBg
+                width: parent.width
+                height: contentCard.implicitHeight + 34
+                radius: 18
+                color: root.m3Surface
+
+                // Hover-responsive border
+                border.width: 0
+                border.color: {
+                    if (card.isHovered)
+                        return Qt.rgba(root.m3Primary.r, root.m3Primary.g, root.m3Primary.b, 0.2)
+                    if (wrapper.urgency === NotificationUrgency.Critical)
+                        return Qt.rgba(root.m3Error.r, root.m3Error.g, root.m3Error.b, 0.2)
+                    return root.m3Border
+                }
+
+                Behavior on border.color {
+                    ColorAnimation { duration: 250; easing.type: Easing.OutCubic }
+                }
+
+                // Elevation shadow — lifts on hover
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    shadowColor: Qt.rgba(0, 0, 0, card.isHovered ? 0.28 : 0.16)
+                    shadowBlur: card.isHovered ? 0.9 : 0.55
+                    shadowVerticalOffset: card.isHovered ? 8 : 4
+                }
+
+                // ── Hover glow overlay ──
+                Rectangle {
+                    anchors.fill: parent
+                    radius: parent.radius
+                    color: root.m3OnSurface
+                    opacity: card.isHovered && !card.isDragging ? 0.035 : 0
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
                     }
                 }
 
-                // ── Exit: swipe right ──
-                SequentialAnimation {
-                    id: exitRight
-
-                    ParallelAnimation {
-                        NumberAnimation {
-                            target: notifCard; property: "dragX"
-                            to: config.notifications.popupWidth + 60
-                            duration: 180; easing.type: Easing.InCubic
-                        }
-                        NumberAnimation {
-                            target: modelData; property: "popupEntryRotation"
-                            to: 4; duration: 180; easing.type: Easing.InQuad
-                        }
-                        NumberAnimation {
-                            target: modelData; property: "popupEntryOpacity"
-                            to: 0.3; duration: 180; easing.type: Easing.InQuad
-                        }
-                    }
-                    NumberAnimation {
-                        target: notifCard; property: "height"
-                        to: 0; duration: 120; easing.type: Easing.InCubic
-                    }
-                    ScriptAction { script: modelData.close() }
-                }
-
-                // ── Exit: swipe left ──
-                SequentialAnimation {
-                    id: exitLeft
-
-                    ParallelAnimation {
-                        NumberAnimation {
-                            target: notifCard; property: "dragX"
-                            to: -(config.notifications.popupWidth + 60)
-                            duration: 180; easing.type: Easing.InCubic
-                        }
-                        NumberAnimation {
-                            target: modelData; property: "popupEntryRotation"
-                            to: -4; duration: 180; easing.type: Easing.InQuad
-                        }
-                        NumberAnimation {
-                            target: modelData; property: "popupEntryOpacity"
-                            to: 0.3; duration: 180; easing.type: Easing.InQuad
-                        }
-                    }
-                    NumberAnimation {
-                        target: notifCard; property: "height"
-                        to: 0; duration: 120; easing.type: Easing.InCubic
-                    }
-                    ScriptAction { script: modelData.close() }
-                }
-
-                // ── Snap back (spring) ──
-                ParallelAnimation {
-                    id: snapBack
-
-                    NumberAnimation {
-                        target: notifCard; property: "dragX"
-                        to: 0; duration: 280
-                        easing.type: Easing.OutBack; easing.overshoot: 1.3
-                    }
-                    NumberAnimation {
-                        target: modelData; property: "popupEntryRotation"
-                        to: 0; duration: 200; easing.type: Easing.OutCubic
+                // ── Urgency tint (low / critical only) ──
+                Rectangle {
+                    anchors.fill: parent
+                    radius: parent.radius
+                    z: -1
+                    visible: wrapper.urgency !== NotificationUrgency.Normal
+                    color: {
+                        const c = root._urgencyColor(wrapper.urgency)
+                        if (wrapper.urgency === NotificationUrgency.Critical)
+                            return Qt.rgba(c.r, c.g, c.b, 0.08)
+                        return Qt.rgba(c.r, c.g, c.b, 0.04)
                     }
                 }
 
-                // ── Standard dismiss (scale + fade) ──
-                // Only hides the popup — the notification is NOT closed so it
-                // stays in the notification panel (unread history).
-                SequentialAnimation {
-                    id: dismissAnim
-
-                    ParallelAnimation {
-                        NumberAnimation {
-                            target: modelData; property: "popupEntryScale"
-                            to: 0.88; duration: 160; easing.type: Easing.InCubic
-                        }
-                        NumberAnimation {
-                            target: modelData; property: "popupEntryOpacity"
-                            to: 0; duration: 160; easing.type: Easing.InQuad
-                        }
+                // ── Progress bar (bottom sweep) ──
+                Rectangle {
+                    id: progressTrack
+                    anchors {
+                        bottom: parent.bottom
+                        left: parent.left
+                        right: parent.right
+                        bottomMargin: 7
+                        leftMargin: 18
+                        rightMargin: 18
                     }
-                    NumberAnimation {
-                        target: notifCard; property: "height"
-                        to: 0; duration: 100; easing.type: Easing.InCubic
-                    }
-                    ScriptAction { script: modelData.popupDismissed = true }
-                }
+                    height: 2
+                    radius: 1
+                    color: Qt.rgba(root.m3OnSurface.r, root.m3OnSurface.g,
+                                   root.m3OnSurface.b, 0.04)
+                    visible: card.isVisible && !card.isHovered
+                    clip: true
 
-                function dismiss() {
-                    isVisible = false
-                    modelData.popupActive = false
-                    dismissAnim.start()
-                }
-
-                function swipeDismiss(direction) {
-                    isVisible = false
-                    modelData.popupActive = false
-                    if (direction > 0) exitRight.start()
-                    else exitLeft.start()
-                }
-
-                // Wrapper countdown hit zero — time this card out
-                onTimeoutProgressChanged: {
-                    if (notifCard.timeoutProgress <= 0 && notifCard.isVisible)
-                        notifCard.dismiss()
-                }
-
-                // ───────────────────────────────────────────────────────────
-                // CARD WRAPPER (holds swipe transforms)
-                // ───────────────────────────────────────────────────────────
-                Item {
-                    id: cardWrapper
-                    width: parent.width
-                    height: cardBg.height
-                    x: notifCard.dragX
-                    scale: modelData.popupEntryScale
-                    opacity: modelData.popupEntryOpacity
-                    transformOrigin: Item.Top
-
-                    // Physics-feel rotation during drag
-                    rotation: modelData.popupEntryRotation +
-                              (notifCard.isDragging ? notifCard.dragX * 0.015 : 0)
-
-                    transform: Translate { y: modelData.popupEntryY }
-
-                    // ── Swipe indicator (behind card) ──
                     Rectangle {
-                        anchors.fill: cardBg
-                        radius: cardBg.radius
-                        visible: Math.abs(notifCard.dragX) > 20
-                        opacity: Math.min(0.85,
-                            Math.abs(notifCard.dragX) /
-                            (config.notifications.popupWidth * root.swipeThreshold * 1.5))
-
-                        color: notifCard.dragX > 0
-                            ? Qt.rgba(root.m3Error.r, root.m3Error.g, root.m3Error.b, 0.06)
-                            : Qt.rgba(root.m3Primary.r, root.m3Primary.g, root.m3Primary.b, 0.06)
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: notifCard.dragX > 0 ? "󰅖" : "󰄬"
-                            font.family: "Material Design Icons"
-                            font.pixelSize: 26
-                            color: notifCard.dragX > 0 ? root.m3Error : root.m3Primary
-                            opacity: 0.55
+                        anchors {
+                            left: parent.left
+                            top: parent.top
+                            bottom: parent.bottom
+                        }
+                        width: progressTrack.width * card.timeoutProgress
+                        radius: parent.radius
+                        color: {
+                            const c = root._urgencyColor(wrapper.urgency)
+                            return Qt.rgba(c.r, c.g, c.b, 0.45)
                         }
                     }
+                }
 
-                    // ═══════════════════════════════════════════════════════
-                    // CARD BACKGROUND
-                    // ═══════════════════════════════════════════════════════
-                    Rectangle {
-                        id: cardBg
-                        width: parent.width
-                        height: contentCard.implicitHeight + 34
-                        radius: 18
-                        color: root.m3Surface
+                // Pause the countdown on hover / drag
+                Connections {
+                    target: card
+                    function onIsHoveredChanged() {
+                        wrapper.popupActive = !(card.isHovered || card.isDragging)
+                    }
+                    function onIsDraggingChanged() {
+                        wrapper.popupActive = !(card.isHovered || card.isDragging)
+                    }
+                }
 
-                        // Hover-responsive border
-                        border.width: 0
-                        border.color: {
-                            if (notifCard.isHovered)
-                                return Qt.rgba(root.m3Primary.r, root.m3Primary.g, root.m3Primary.b, 0.2)
-                            if (modelData.urgency === NotificationUrgency.Critical)
-                                return Qt.rgba(root.m3Error.r, root.m3Error.g, root.m3Error.b, 0.2)
-                            return root.m3Border
-                        }
+                // ═══════════════════════════════════════════════════════════
+                // GESTURE AREA
+                // ═══════════════════════════════════════════════════════════
+                MouseArea {
+                    id: gestureArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
 
-                        Behavior on border.color {
-                            ColorAnimation { duration: 250; easing.type: Easing.OutCubic }
-                        }
+                    property real startX: 0
+                    property bool gestureStarted: false
+                    property real scrollAccum: 0
+                    property bool isScrolling: false
 
-                        // Elevation shadow — lifts on hover
-                        layer.enabled: true
-                        layer.effect: MultiEffect {
-                            shadowEnabled: true
-                            shadowColor: Qt.rgba(0, 0, 0,
-                                notifCard.isHovered ? 0.28 : 0.16)
-                            shadowBlur: notifCard.isHovered ? 0.9 : 0.55
-                            shadowVerticalOffset: notifCard.isHovered ? 8 : 4
-                        }
+                    onEntered: card.isHovered = true
+                    onExited: {
+                        if (!pressed && !isScrolling)
+                            card.isHovered = false
+                    }
 
-                        // ── Hover glow overlay ──
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: parent.radius
-                            color: root.m3OnSurface
-                            opacity: notifCard.isHovered && !notifCard.isDragging ? 0.035 : 0
+                    // ── Two-finger swipe (trackpad) ──
+                    onWheel: wheel => {
+                        if (Math.abs(wheel.angleDelta.x) > Math.abs(wheel.angleDelta.y)) {
+                            wheel.accepted = true
+                            scrollAccum += wheel.angleDelta.x * 0.5
+                            card.x = scrollAccum
+                            isScrolling = true
+                            card.isDragging = true
+                            scrollTimer.restart()
 
-                            Behavior on opacity {
-                                NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
-                            }
-                        }
-
-                        // ── Urgency tint (low / critical only) ──
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: parent.radius
-                            z: -1
-                            visible: modelData.urgency !== NotificationUrgency.Normal
-                            color: {
-                                const c = root._urgencyColor(modelData.urgency)
-                                if (modelData.urgency === NotificationUrgency.Critical)
-                                    return Qt.rgba(c.r, c.g, c.b, 0.08)
-                                return Qt.rgba(c.r, c.g, c.b, 0.04)
-                            }
-                        }
-
-                        // ── Progress bar (bottom sweep) ──
-                        Rectangle {
-                            id: progressTrack
-                            anchors {
-                                bottom: parent.bottom
-                                left: parent.left
-                                right: parent.right
-                                bottomMargin: 7
-                                leftMargin: 18
-                                rightMargin: 18
-                            }
-                            height: 2
-                            radius: 1
-                            color: Qt.rgba(root.m3OnSurface.r, root.m3OnSurface.g,
-                                           root.m3OnSurface.b, 0.04)
-                            visible: notifCard.isVisible && !notifCard.isHovered
-                            clip: true
-
-                            Rectangle {
-                                anchors {
-                                    left: parent.left
-                                    top: parent.top
-                                    bottom: parent.bottom
-                                }
-                                width: progressTrack.width * notifCard.timeoutProgress
-                                radius: parent.radius
-                                color: {
-                                    const c = root._urgencyColor(modelData.urgency)
-                                    return Qt.rgba(c.r, c.g, c.b, 0.45)
-                                }
-                            }
-                        }
-
-                        // Pause the countdown on hover / drag
-                        Connections {
-                            target: notifCard
-                            function onIsHoveredChanged() {
-                                modelData.popupActive = !(notifCard.isHovered || notifCard.isDragging)
-                            }
-                            function onIsDraggingChanged() {
-                                modelData.popupActive = !(notifCard.isHovered || notifCard.isDragging)
-                            }
-                        }
-
-                        // ═══════════════════════════════════════════════════
-                        // GESTURE AREA
-                        // ═══════════════════════════════════════════════════
-                        MouseArea {
-                            id: gestureArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-
-                            property real startX: 0
-                            property bool gestureStarted: false
-                            property real scrollAccum: 0
-                            property bool isScrolling: false
-
-                            onEntered: notifCard.isHovered = true
-                            onExited: {
-                                if (!pressed && !isScrolling)
-                                    notifCard.isHovered = false
-                            }
-
-                            // ── Two-finger swipe (trackpad) ──
-                            onWheel: wheel => {
-                                if (Math.abs(wheel.angleDelta.x) > Math.abs(wheel.angleDelta.y)) {
-                                    wheel.accepted = true
-                                    scrollAccum += wheel.angleDelta.x * 0.5
-                                    notifCard.dragX = scrollAccum
-                                    isScrolling = true
-                                    notifCard.isDragging = true
-                                    scrollTimer.restart()
-
-                                    const thresh = config.notifications.popupWidth * root.swipeThreshold
-                                    if (Math.abs(scrollAccum) > thresh) {
-                                        scrollTimer.stop()
-                                        isScrolling = false
-                                        notifCard.swipeDismiss(scrollAccum)
-                                        scrollAccum = 0
-                                    }
-                                }
-                            }
-
-                            Timer {
-                                id: scrollTimer
-                                interval: 300
-                                onTriggered: {
-                                    gestureArea.isScrolling = false
-                                    notifCard.isDragging = false
-                                    const thresh = config.notifications.popupWidth * root.swipeThreshold
-                                    if (Math.abs(gestureArea.scrollAccum) > thresh)
-                                        notifCard.swipeDismiss(gestureArea.scrollAccum)
-                                    else
-                                        snapBack.start()
-                                    gestureArea.scrollAccum = 0
-                                }
-                            }
-
-                            // ── Drag gesture ──
-                            onPressed: mouse => {
-                                startX = mouse.x
-                                gestureStarted = false
-                                notifCard.isDragging = false
+                            const thresh = config.notifications.popupWidth * root.swipeThreshold
+                            if (Math.abs(scrollAccum) > thresh) {
+                                scrollTimer.stop()
+                                isScrolling = false
+                                root.swipeDismiss(scrollAccum > 0 ? 1 : -1)
                                 scrollAccum = 0
                             }
-
-                            onPositionChanged: mouse => {
-                                if (!pressed) return
-                                const dx = mouse.x - startX
-                                if (!gestureStarted && Math.abs(dx) > 10) {
-                                    gestureStarted = true
-                                    notifCard.isDragging = true
-                                }
-                                if (notifCard.isDragging)
-                                    notifCard.dragX = dx * 0.8
-                            }
-
-                            onReleased: mouse => {
-                                notifCard.isDragging = false
-                                if (!containsMouse) notifCard.isHovered = false
-                                const thresh = config.notifications.popupWidth * root.swipeThreshold
-                                if (Math.abs(notifCard.dragX) > thresh)
-                                    notifCard.swipeDismiss(notifCard.dragX)
-                                else
-                                    snapBack.start()
-                            }
-
-                            onClicked: mouse => {
-                                if (mouse.button === Qt.MiddleButton) {
-                                    notifCard.dismiss()
-                                } else if (!gestureStarted) {
-                                    // Single action → invoke; else toggle expand
-                                    if (modelData.actions && modelData.actions.length === 1) {
-                                        modelData.actions[0].invoke()
-                                        notifCard.dismiss()
-                                    } else {
-                                        notifCard.isExpanded = !notifCard.isExpanded
-                                    }
-                                }
-                            }
-                        }
-
-                        NotificationCard {
-                            id: contentCard
-                            anchors {
-                                left: parent.left
-                                right: parent.right
-                                top: parent.top
-                                margins: 16
-                                topMargin: 18
-                            }
-                            notification: modelData
-                            pywal: root.pywal
-                            showCloseButton: true
-                            showTimestamp: false
-                            showActions: true
-                            showBody: true
-                            showAppIcon: true
-
-                            primaryColor: root.m3Primary
-                            onSurfaceColor: root.m3OnSurface
-                            onSurfaceVariantColor: root.m3OnSurfaceVariant
-                            errorColor: root.m3Error
-                            surfaceContainerHighColor: root.m3SurfaceContainerHigh
                         }
                     }
+
+                    Timer {
+                        id: scrollTimer
+                        interval: 300
+                        onTriggered: {
+                            gestureArea.isScrolling = false
+                            card.isDragging = false
+                            const thresh = config.notifications.popupWidth * root.swipeThreshold
+                            if (Math.abs(gestureArea.scrollAccum) > thresh)
+                                root.swipeDismiss(gestureArea.scrollAccum > 0 ? 1 : -1)
+                            else
+                                snapBack.start()
+                            gestureArea.scrollAccum = 0
+                        }
+                    }
+
+                    // ── Drag gesture ──
+                    onPressed: mouse => {
+                        startX = mouse.x
+                        gestureStarted = false
+                        card.isDragging = false
+                        scrollAccum = 0
+                    }
+
+                    onPositionChanged: mouse => {
+                        if (!pressed) return
+                        const dx = mouse.x - startX
+                        if (!gestureStarted && Math.abs(dx) > 10) {
+                            gestureStarted = true
+                            card.isDragging = true
+                        }
+                        if (card.isDragging)
+                            card.x = dx * 0.8
+                    }
+
+                    onReleased: mouse => {
+                        card.isDragging = false
+                        if (!containsMouse) card.isHovered = false
+                        const thresh = config.notifications.popupWidth * root.swipeThreshold
+                        if (Math.abs(card.x) > thresh)
+                            root.swipeDismiss(card.x > 0 ? 1 : -1)
+                        else
+                            snapBack.start()
+                    }
+
+                    onClicked: mouse => {
+                        if (mouse.button === Qt.MiddleButton) {
+                            root.dismissCard()
+                        } else if (!gestureStarted) {
+                            // Single action → invoke, then dismiss
+                            if (wrapper.actions && wrapper.actions.length === 1) {
+                                wrapper.actions[0].invoke()
+                                root.dismissCard()
+                            }
+                        }
+                    }
+                }
+
+                NotificationCard {
+                    id: contentCard
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        top: parent.top
+                        margins: 16
+                        topMargin: 18
+                    }
+                    notification: wrapper
+                    pywal: root.pywal
+                    showCloseButton: true
+                    showTimestamp: false
+                    showActions: true
+                    showBody: true
+                    showAppIcon: true
+
+                    primaryColor: root.m3Primary
+                    onSurfaceColor: root.m3OnSurface
+                    onSurfaceVariantColor: root.m3OnSurfaceVariant
+                    errorColor: root.m3Error
+                    surfaceContainerHighColor: root.m3SurfaceContainerHigh
                 }
             }
         }
