@@ -193,7 +193,7 @@ Singleton {
     // GPU Detection
     Process {
         id: gpuDetectProc
-        command: ["/bin/sh", "-c", "if command -v nvidia-smi >/dev/null 2>&1; then echo 'nvidia'; elif command -v radeontop >/dev/null 2>&1; then echo 'amd'; elif [ -d /sys/class/drm/card0/device/drm/card0 ]; then echo 'intel'; else echo 'none'; fi"]
+        command: ["/bin/sh", "-c", "if command -v nvidia-smi >/dev/null 2>&1; then echo 'nvidia'; elif command -v radeontop >/dev/null 2>&1; then echo 'amd'; elif ls /sys/class/drm/card*/device/gpu_busy_percent >/dev/null 2>&1; then echo 'amd'; elif [ -d /sys/class/drm/card0 ]; then echo 'intel'; else echo 'none'; fi"]
         running: false
         
         stdout: SplitParser {
@@ -228,10 +228,10 @@ Singleton {
         }
     }
     
-    // AMD GPU monitoring (using radeontop)
+    // AMD GPU monitoring (amdgpu sysfs gpu_busy_percent, fallback to radeontop)
     Process {
         id: amdGpuProc
-        command: ["/bin/sh", "-c", "radeontop -d - -l 1 2>/dev/null | grep -oP 'gpu \\K[0-9.]+' | head -1"]
+        command: ["/bin/sh", "-c", "busy=$(cat /sys/class/drm/card*/device/gpu_busy_percent 2>/dev/null | head -1); if [ -n \"$busy\" ]; then echo \"$busy\"; elif command -v radeontop >/dev/null 2>&1; then radeontop -d - -l 1 2>/dev/null | grep -oP 'gpu \\K[0-9.]+' | head -1; fi"]
         running: false
         
         stdout: SplitParser {
@@ -245,7 +245,7 @@ Singleton {
     
     Process {
         id: amdTempProc
-        command: ["/bin/sh", "-c", "cat /sys/class/hwmon/hwmon*/temp1_input 2>/dev/null | head -1"]
+        command: ["/bin/sh", "-c", "cat /sys/class/drm/card*/device/hwmon/hwmon*/temp1_input 2>/dev/null | head -1"]
         running: false
         
         stdout: SplitParser {

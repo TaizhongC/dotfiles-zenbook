@@ -26,7 +26,6 @@ Item {
             anchors.margins: 16
             spacing: 0
 
-            Item { Layout.fillWidth: true }
             StatItem {
                 icon: "󰔠"; label: "TEMP"; value: root.systemUsage.cpuTemp ?? 0
                 suffix: "°"
@@ -43,6 +42,13 @@ Item {
             Rectangle { width: 1; height: 48; color: Qt.rgba(root.cOnSurface.r, root.cOnSurface.g, root.cOnSurface.b, 0.1) }
             Item { Layout.fillWidth: true }
             StatItem {
+                icon: "󰢮"; label: "GPU"; value: (root.systemUsage.gpuUsage ?? 0)
+                accentColor: value > 80 ? pywal.error : value > 50 ? pywal.warning : pywal.primary
+            }
+            Item { Layout.fillWidth: true }
+            Rectangle { width: 1; height: 48; color: Qt.rgba(root.cOnSurface.r, root.cOnSurface.g, root.cOnSurface.b, 0.1) }
+            Item { Layout.fillWidth: true }
+            StatItem {
                 icon: "󰍛"; label: "RAM"; value: (root.systemUsage.memPerc ?? 0) * 100
                 accentColor: value > 80 ? pywal.error : value > 50 ? pywal.warning : pywal.secondary
             }
@@ -53,7 +59,6 @@ Item {
                 icon: "󰋊"; label: "DISK"; value: (root.systemUsage.diskPerc ?? 0) * 100
                 accentColor: value > 80 ? pywal.error : value > 50 ? pywal.warning : pywal.tertiary
             }
-            Item { Layout.fillWidth: true }
         }
     }
 
