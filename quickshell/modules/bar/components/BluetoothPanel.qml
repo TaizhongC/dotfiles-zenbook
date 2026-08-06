@@ -222,6 +222,7 @@ FocusScope {
                                 Text {
                                     text: {
                                         if (deviceItem.modelData.state === BluetoothDeviceState.Connecting) return "Connecting..."
+                                        if (deviceItem.modelData.pairing) return "Pairing..."
                                         if (isConnected) return "Connected"
                                         if (deviceItem.modelData.bonded) return "Paired"
                                         return "Available"
@@ -241,10 +242,15 @@ FocusScope {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: isConnected ? "󰌊" : "󰌘"
+                                    text: deviceItem.modelData.pairing ? "󰑐" : (isConnected ? "󰌊" : "󰌘")
                                     font.family: "Material Design Icons"
                                     font.pixelSize: 14
                                     color: isConnected ? cPrimary : cOnSurfaceVariant
+
+                                    RotationAnimation on rotation {
+                                        running: deviceItem.modelData.pairing
+                                        from: 0; to: 360; duration: 1000; loops: Animation.Infinite
+                                    }
                                 }
 
                                 MouseArea {

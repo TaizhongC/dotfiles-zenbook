@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Blueman Applet
+Comment=Bluetooth manager and pairing agent
+Exec=blueman-applet
+Terminal=false
+X-GNOME-Autostart-enabled=true

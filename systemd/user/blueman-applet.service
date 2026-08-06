@@ -1,0 +1,12 @@
+[Unit]
+Description=Blueman Applet (Bluetooth pairing agent)
+After=bluetooth.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/blueman-applet
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
