@@ -201,17 +201,25 @@ Singleton {
         // Use a JS array so `.length`/indexing and helpers work reliably.
         property var actions: []
         
-        // Time formatting
-        readonly property string timeString: {
+        // Time formatting: "X minutes ago" within the first hour, then the
+        // actual time ("21:28 on Thursday 6 August"). Refreshed every minute
+        // so the relative → absolute transition happens on its own.
+        property string timeString: formatTime()
+
+        readonly property Timer refreshTimer: Timer {
+            interval: 60000
+            repeat: true
+            running: true
+            onTriggered: notifWrapper.timeString = notifWrapper.formatTime()
+        }
+
+        function formatTime() {
             const diff = new Date().getTime() - timestamp.getTime();
+            if (diff < 60000) return "Just now";
             const minutes = Math.floor(diff / 60000);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-            
-            if (days > 0) return days + "d ago";
-            if (hours > 0) return hours + "h ago";
-            if (minutes > 0) return minutes + "m ago";
-            return "Just now";
+            if (minutes < 60)
+                return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+            return Qt.formatDateTime(timestamp, "HH:mm on dddd d MMMM");
         }
         
         // Connections to notification object

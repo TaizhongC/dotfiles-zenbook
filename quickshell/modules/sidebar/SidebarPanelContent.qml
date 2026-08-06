@@ -37,7 +37,7 @@ ColumnLayout {
         Rectangle {
             width: 28; height: 28; radius: 14
             color: clearMouse.containsMouse ? Qt.rgba(pywal.foreground.r, pywal.foreground.g, pywal.foreground.b, 0.1) : "transparent"
-            Text { anchors.centerIn: parent; text: "󰎟"; font.family: "Material Design Icons"; font.pixelSize: 16; color: pywal.foreground }
+            Text { anchors.centerIn: parent; text: "󰆴"; font.family: "Material Design Icons"; font.pixelSize: 16; color: pywal.foreground }
             MouseArea {
                 id: clearMouse
                 anchors.fill: parent
@@ -51,7 +51,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         clip: true
-        spacing: 10
+        spacing: 4
         model: root.visibleNotifications
 
         delegate: Rectangle {
@@ -62,7 +62,7 @@ ColumnLayout {
             // Explicit height — children with anchors.fill do not size their
             // parent, so delegates otherwise collapse to 0 and every
             // notification overlaps the first one.
-            height: Math.max(88, notifCard.implicitHeight + 18)
+            height: Math.max(72, notifCard.implicitHeight + 10)
             radius: 16
             color: notifDelegate.modelData.read
                 ? "transparent"
@@ -74,6 +74,7 @@ ColumnLayout {
                 anchors.fill: parent
                 notification: notifDelegate.modelData
                 pywal: root.pywal
+                showTimestamp: true
             }
         }
     }
