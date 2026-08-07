@@ -30,3 +30,12 @@ dconf/
 pavucontrol.ini
 waybar/scripts/__pycache__/
 fcitx/dbus/
+
+# Generated application state, logs, profiles, and session-specific settings
+QtProject.conf
+blender/
+fcitx5/conf/cached_layouts
+ibus/bus/
+obs-studio/
+quickshell/settings.json
+vlc/vlc-qt-interface.conf

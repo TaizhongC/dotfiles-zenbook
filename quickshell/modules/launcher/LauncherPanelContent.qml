@@ -14,6 +14,10 @@ ColumnLayout {
 
     // Set by the centric panel when this is the active mode
     property bool panelActive: false
+    // A Return key can be seen by both a focused TextField and an ancestor
+    // during focus transitions. Keep launchEntry idempotent while the panel
+    // closes so one selection always starts at most one process.
+    property bool launchInProgress: false
     signal closeRequested()
 
     property string query: ""
@@ -140,6 +144,7 @@ ColumnLayout {
 
     onPanelActiveChanged: {
         if (panelActive) {
+            launchInProgress = false
             searchField.text = ""
             query = ""
             selectedIndex = 0
@@ -158,7 +163,7 @@ ColumnLayout {
     }
 
     function launchEntry(entry) {
-        if (!entry)
+        if (!entry || launchInProgress)
             return
 
         if (entry.type === "search") {
@@ -169,11 +174,13 @@ ColumnLayout {
         }
 
         if (entry.type === "action") {
+            launchInProgress = true
             entry.onTriggered()
             closeRequested()
             return
         }
 
+        launchInProgress = true
         QsServices.Settings.rememberLauncherSearch(query)
 
         if (entry.runInTerminal) {
@@ -193,8 +200,6 @@ ColumnLayout {
 
     Keys.onDownPressed: root.selectedIndex = Math.min(root.selectedIndex + 1, root.visibleEntries.length - 1)
     Keys.onUpPressed: root.selectedIndex = Math.max(root.selectedIndex - 1, 0)
-    Keys.onReturnPressed: root.launchEntry(root.visibleEntries[root.selectedIndex])
-    Keys.onEnterPressed: root.launchEntry(root.visibleEntries[root.selectedIndex])
 
     // Search bar
     Rectangle {
