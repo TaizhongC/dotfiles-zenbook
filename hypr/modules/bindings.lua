@@ -16,8 +16,8 @@ return function(ctx)
   hl.bind(mod .. " + V", hl.dsp.layout("togglesplit"))
   -- Toggle Fcitx5 between the UK keyboard and Rime Chinese input.
   -- Quickshell polls the input state itself; it has no Waybar signal to send.
-  hl.bind("ALT + SHIFT_L", hl.dsp.exec_cmd("fcitx5-remote -t"))
-  hl.bind("ALT + SHIFT_R", hl.dsp.exec_cmd("fcitx5-remote -t"))
+  hl.bind(mod .. " + SHIFT_L", hl.dsp.exec_cmd("fcitx5-remote -t"))
+  hl.bind(mod .. " + SHIFT_R", hl.dsp.exec_cmd("fcitx5-remote -t"))
 
   for _, direction in ipairs({ "left", "down", "up", "right" }) do
     hl.bind(mod .. " + " .. direction, hl.dsp.focus({ direction = direction }))
