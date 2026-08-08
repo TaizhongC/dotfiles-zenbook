@@ -15,6 +15,8 @@ PanelWindow {
     property bool shouldShow: false
     property string query: ""
     property int selectedIndex: 0
+    // Keep launchEntry idempotent until the close transition completes.
+    property bool launchInProgress: false
 
     readonly property var config: QsConfig.Config
     readonly property var appearance: QsConfig.AppearanceConfig
@@ -149,6 +151,7 @@ PanelWindow {
     }
 
     function openLauncher() {
+        launchInProgress = false
         shouldShow = true
         searchField.text = ""
         query = ""
@@ -157,7 +160,7 @@ PanelWindow {
     }
 
     function launchEntry(entry) {
-        if (!entry)
+        if (!entry || launchInProgress)
             return
 
         if (entry.type === "search") {
@@ -168,11 +171,13 @@ PanelWindow {
         }
 
         if (entry.type === "action") {
+            launchInProgress = true
             entry.onTriggered()
             closeLauncher()
             return
         }
 
+        launchInProgress = true
         QsServices.Settings.rememberLauncherSearch(query)
 
         if (entry.runInTerminal) {
@@ -192,6 +197,7 @@ PanelWindow {
 
     onShouldShowChanged: {
         if (shouldShow) {
+            launchInProgress = false
             searchField.text = ""
             query = ""
             selectedIndex = 0
@@ -296,6 +302,20 @@ PanelWindow {
                             placeholderTextColor: root.cSubText
                             background: Item {}
                             selectByMouse: true
+
+                            // Handle and consume the key here so it cannot
+                            // also reach the FocusScope's shortcut handlers.
+                            Keys.priority: Keys.BeforeItem
+                            Keys.onReturnPressed: event => {
+                                if (!event.isAutoRepeat)
+                                    root.launchEntry(root.visibleEntries[root.selectedIndex])
+                                event.accepted = true
+                            }
+                            Keys.onEnterPressed: event => {
+                                if (!event.isAutoRepeat)
+                                    root.launchEntry(root.visibleEntries[root.selectedIndex])
+                                event.accepted = true
+                            }
 
                             onTextChanged: {
                                 root.query = text

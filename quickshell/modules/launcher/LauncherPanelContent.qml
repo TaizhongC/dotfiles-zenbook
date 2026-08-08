@@ -198,6 +198,15 @@ ColumnLayout {
         closeRequested()
     }
 
+    // Own Return/Enter at the text field.  TextField's accepted signal can be
+    // delivered alongside a propagated key event while this panel is closing,
+    // which used to start the selected desktop entry twice.
+    function launchSelected(event) {
+        if (!event.isAutoRepeat)
+            launchEntry(visibleEntries[selectedIndex])
+        event.accepted = true
+    }
+
     Keys.onDownPressed: root.selectedIndex = Math.min(root.selectedIndex + 1, root.visibleEntries.length - 1)
     Keys.onUpPressed: root.selectedIndex = Math.max(root.selectedIndex - 1, 0)
 
@@ -231,12 +240,14 @@ ColumnLayout {
                 background: Item {}
                 selectByMouse: true
 
+                Keys.priority: Keys.BeforeItem
+                Keys.onReturnPressed: event => root.launchSelected(event)
+                Keys.onEnterPressed: event => root.launchSelected(event)
+
                 onTextChanged: {
                     root.query = text
                     root.selectedIndex = 0
                 }
-
-                onAccepted: root.launchEntry(root.visibleEntries[root.selectedIndex])
             }
 
             Text {
