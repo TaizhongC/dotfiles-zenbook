@@ -1,0 +1,11 @@
+[mgr]
+prepend_keymap = [
+  # Yazi's built-in `d` already uses the FreeDesktop Trash specification.
+  # These bindings use trash-cli to browse, restore, and clean that same bin.
+  { on = [ "R", "b" ], run = "cd ~/.local/share/Trash/files", desc = "Browse Recycle Bin" },
+  { on = [ "R", "l" ], run = 'shell --block -- trash-list; printf "\nPress Enter to return to Yazi..."; read return_key', desc = "List Recycle Bin contents" },
+  { on = [ "R", "r" ], run = 'shell --block -- trash-restore --sort=date "$HOME"; ya emit cd ~/.local/share/Trash/files', desc = "Restore from Recycle Bin" },
+  # Native Yazi confirmation overlays; trash-cli only runs after confirmation.
+  { on = [ "R", "e" ], run = "plugin recycle-confirm", desc = "Permanently empty Recycle Bin" },
+  { on = [ "R", "D" ], run = "plugin recycle-confirm -- 30", desc = "Permanently empty Recycle Bin items older than 30 days" },
+]
