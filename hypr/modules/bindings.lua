@@ -3,6 +3,7 @@ return function(ctx)
   hl.bind(mod .. " + C", hl.dsp.exec_cmd(ctx.terminal))
   hl.bind(mod .. " + Q", hl.dsp.window.close())
   hl.bind(mod .. " + M", hl.dsp.exec_cmd("hyprlock"))
+  hl.bind("code:201", hl.dsp.exec_cmd("hyprlock"), { ignore_mods = true })
   hl.bind(mod .. " + E", hl.dsp.exec_cmd(ctx.file_manager))
   hl.bind(mod .. " + SPACE", hl.dsp.exec_cmd(ctx.menu))
   -- Unified quickshell central panel (modules/centric/CentricPanelWindow.qml)
@@ -16,8 +17,7 @@ return function(ctx)
   hl.bind(mod .. " + V", hl.dsp.layout("togglesplit"))
   -- Toggle Fcitx5 between the UK keyboard and Rime Chinese input.
   -- Quickshell polls the input state itself; it has no Waybar signal to send.
-  hl.bind(mod .. " + SHIFT_L", hl.dsp.exec_cmd("fcitx5-remote -t"))
-  hl.bind(mod .. " + SHIFT_R", hl.dsp.exec_cmd("fcitx5-remote -t"))
+  hl.bind("code:108", hl.dsp.exec_cmd("fcitx5-remote -t"))
 
   for _, direction in ipairs({ "left", "down", "up", "right" }) do
     hl.bind(mod .. " + " .. direction, hl.dsp.focus({ direction = direction }))

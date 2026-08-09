@@ -130,5 +130,6 @@ Item {
                 Behavior on width { NumberAnimation { duration: 500; easing.bezierCurve: Material3Anim.standard } }
             }
         }
+
     }
 }

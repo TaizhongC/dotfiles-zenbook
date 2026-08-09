@@ -14,6 +14,10 @@ Singleton {
     property bool visible: true
     
     property var active: null
+    // Some browser MPRIS implementations keep advertising a player after the
+    // tab or media has closed. Keep a local dismissal list so that stale
+    // players do not leave the whole shell stuck in a playing state.
+    property var dismissedPlayers: []
     
     // React to MPRIS player changes via Connections (event-driven)
     Connections {
@@ -26,34 +30,61 @@ Singleton {
     
     function updateActivePlayer() {
         var newActive = null
+        var connectedDismissals = []
+
+        // Forget a dismissal as soon as its MPRIS player disconnects. A later
+        // player instance is then shown normally.
+        for (var d = 0; d < dismissedPlayers.length; d++) {
+            if (list.includes(dismissedPlayers[d]))
+                connectedDismissals.push(dismissedPlayers[d])
+        }
+        if (connectedDismissals.length !== dismissedPlayers.length)
+            dismissedPlayers = connectedDismissals
         
         // 1. Find the first playing player
         for (var i = 0; i < list.length; i++) {
-            if (list[i]?.isPlaying) {
+            if (!dismissedPlayers.includes(list[i]) && list[i]?.isPlaying) {
                 newActive = list[i]
                 break
             }
         }
         
-        // 2. If no player is currently playing, preserve current active player if still available in list
+        // If no player is currently playing, preserve the current player while
+        // it remains available so paused media is still controllable.
         if (!newActive && active) {
             for (var j = 0; j < list.length; j++) {
-                if (list[j] === active) {
+                if (!dismissedPlayers.includes(list[j]) && list[j] === active) {
                     newActive = active
                     break
                 }
             }
         }
-        
-        // 3. Fallback to first available player if current active player was destroyed/closed
+
+        // Fall back to the first available player when no current player is
+        // active, matching the original media-card behaviour.
         if (!newActive && list.length > 0) {
-            newActive = list[0]
+            for (var k = 0; k < list.length; k++) {
+                if (!dismissedPlayers.includes(list[k])) {
+                    newActive = list[k]
+                    break
+                }
+            }
         }
-        
-        // Update active if changed
+
         if (active !== newActive) {
             active = newActive
         }
+    }
+
+    function dismissActive() {
+        if (!active)
+            return
+
+        if (!dismissedPlayers.includes(active))
+            dismissedPlayers = dismissedPlayers.concat([active])
+
+        active = null
+        updateActivePlayer()
     }
     
     Component.onCompleted: updateActivePlayer()
