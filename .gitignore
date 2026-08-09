@@ -39,3 +39,8 @@ ibus/bus/
 obs-studio/
 quickshell/settings.json
 vlc/vlc-qt-interface.conf
+
+# Tool caches and generated local application state
+.wrangler/
+obsidian/
+opencode/skills/

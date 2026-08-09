@@ -8,4 +8,5 @@ prepend_keymap = [
   # Native Yazi confirmation overlays; trash-cli only runs after confirmation.
   { on = [ "R", "e" ], run = "plugin recycle-confirm", desc = "Permanently empty Recycle Bin" },
   { on = [ "R", "D" ], run = "plugin recycle-confirm -- 30", desc = "Permanently empty Recycle Bin items older than 30 days" },
+  { on = "y", run = ['shell -- for path in %s; do echo "file://$path"; done | wl-copy -t text/uri-list', "yank"], desc = "Yank and copy files to system clipboard" },
 ]
