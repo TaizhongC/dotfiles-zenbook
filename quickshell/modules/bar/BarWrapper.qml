@@ -69,6 +69,12 @@ Scope {
                 return
             panel.togglePanel("calendar")
         }
+
+        // Used by the `np` shell command to hide a stale media card without
+        // stopping or closing the underlying player.
+        function dismissMedia(): void {
+            QsServices.Players.dismissActive()
+        }
     }
 
     Variants {

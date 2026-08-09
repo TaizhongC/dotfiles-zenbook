@@ -15,8 +15,8 @@ Singleton {
     
     property var active: null
     // Some browser MPRIS implementations keep advertising a player after the
-    // tab or media has closed. Keep a local dismissal list so that stale
-    // players do not leave the whole shell stuck in a playing state.
+    // tab or media has closed. Keep local dismissals for stale media cards.
+    // A dismissal expires when the same player publishes a different track.
     property var dismissedPlayers: []
     
     // React to MPRIS player changes via Connections (event-driven)
@@ -32,18 +32,20 @@ Singleton {
         var newActive = null
         var connectedDismissals = []
 
-        // Forget a dismissal as soon as its MPRIS player disconnects. A later
-        // player instance is then shown normally.
+        // Forget a dismissal when its player disconnects or starts publishing
+        // different media. A new video in the same browser then wakes the card.
         for (var d = 0; d < dismissedPlayers.length; d++) {
-            if (list.includes(dismissedPlayers[d]))
-                connectedDismissals.push(dismissedPlayers[d])
+            var dismissal = dismissedPlayers[d]
+            if (list.includes(dismissal.player)
+                    && mediaSignature(dismissal.player) === dismissal.signature)
+                connectedDismissals.push(dismissal)
         }
         if (connectedDismissals.length !== dismissedPlayers.length)
             dismissedPlayers = connectedDismissals
         
         // 1. Find the first playing player
         for (var i = 0; i < list.length; i++) {
-            if (!dismissedPlayers.includes(list[i]) && list[i]?.isPlaying) {
+            if (!isDismissed(list[i]) && list[i]?.isPlaying) {
                 newActive = list[i]
                 break
             }
@@ -53,7 +55,7 @@ Singleton {
         // it remains available so paused media is still controllable.
         if (!newActive && active) {
             for (var j = 0; j < list.length; j++) {
-                if (!dismissedPlayers.includes(list[j]) && list[j] === active) {
+                if (!isDismissed(list[j]) && list[j] === active) {
                     newActive = active
                     break
                 }
@@ -64,7 +66,7 @@ Singleton {
         // active, matching the original media-card behaviour.
         if (!newActive && list.length > 0) {
             for (var k = 0; k < list.length; k++) {
-                if (!dismissedPlayers.includes(list[k])) {
+                if (!isDismissed(list[k])) {
                     newActive = list[k]
                     break
                 }
@@ -80,11 +82,36 @@ Singleton {
         if (!active)
             return
 
-        if (!dismissedPlayers.includes(active))
-            dismissedPlayers = dismissedPlayers.concat([active])
+        if (!isDismissed(active)) {
+            dismissedPlayers = dismissedPlayers.concat([{
+                player: active,
+                signature: mediaSignature(active)
+            }])
+        }
 
         active = null
         updateActivePlayer()
+    }
+
+    function mediaSignature(player): string {
+        if (!player)
+            return ""
+
+        return [
+            player.trackTitle ?? "",
+            player.trackArtist ?? "",
+            player.trackAlbum ?? "",
+            player.trackArtUrl ?? "",
+            player.length ?? 0
+        ].join("\u001f")
+    }
+
+    function isDismissed(player): bool {
+        for (var i = 0; i < dismissedPlayers.length; i++) {
+            if (dismissedPlayers[i].player === player)
+                return true
+        }
+        return false
     }
     
     Component.onCompleted: updateActivePlayer()
