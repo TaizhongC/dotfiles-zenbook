@@ -38,6 +38,9 @@ Singleton {
         maxVisible: data.notifications?.maxVisible ?? 5,
         timeoutMs: data.notifications?.timeoutMs ?? 7000,
         registerServer: data.notifications?.registerServer ?? true,
+        soundEnabled: data.notifications?.soundEnabled ?? true,
+        soundFile: _expandHome(data.notifications?.soundFile ?? "/usr/share/sounds/freedesktop/stereo/message-new-instant.oga"),
+        soundVolume: data.notifications?.soundVolume ?? 0.65,
         spacing: data.notifications?.spacing ?? 8,
         margin: data.notifications?.margin ?? 8
     })

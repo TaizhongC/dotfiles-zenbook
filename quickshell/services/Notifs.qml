@@ -2,8 +2,10 @@ pragma Singleton
 
 import QtQuick 6.10
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Notifications
 import "." as QsServices
+import "../config" as QsConfig
 
 Singleton {
     id: root
@@ -59,6 +61,26 @@ Singleton {
         property alias lastReadAt: root.lastReadAt
         reloadableId: "notifications-state"
     }
+
+    // Keep notification audio separate from media playback. PipeWire routes it
+    // to the current default output and naturally follows its mute state.
+    Process {
+        id: soundProc
+    }
+
+    function playNewNotificationSound() {
+        const config = QsConfig.Config.notifications
+        if (!config.soundEnabled || !config.soundFile || soundProc.running)
+            return
+
+        const volume = Math.max(0, Math.min(1, Number(config.soundVolume)))
+        soundProc.exec([
+            "pw-play",
+            "--media-role", "Notification",
+            "--volume", volume.toFixed(2),
+            config.soundFile
+        ])
+    }
     
     // Cleanup timer to prevent memory leaks
     Timer {
@@ -87,6 +109,7 @@ Singleton {
         }
 
         QsServices.Logger.debug("Notifs", `Adding notification: ${notif.summary}`)
+        playNewNotificationSound()
         
         const notifWrapper = notifComponent.createObject(root, {
             notification: notif
