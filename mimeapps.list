@@ -22,6 +22,7 @@ video/webm=vlc.desktop
 video/quicktime=vlc.desktop
 video/x-msvideo=vlc.desktop
 application/zip=userapp-unzip -l-33S6S3.desktop
+x-scheme-handler/slack=slack.desktop
 
 [Added Associations]
 x-scheme-handler/http=userapp-Zen-EPS2T3.desktop;zen.desktop;
@@ -47,3 +48,4 @@ video/webm=vlc.desktop;
 video/quicktime=vlc.desktop;
 video/x-msvideo=vlc.desktop;
 application/zip=userapp-unzip -l-33S6S3.desktop;
+x-scheme-handler/slack=slack.desktop;
