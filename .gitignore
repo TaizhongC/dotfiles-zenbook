@@ -25,6 +25,7 @@ pulse/
 yay/
 zen/
 dconf/
+Slack/
 
 # Machine-local application state and Python bytecode
 pavucontrol.ini
