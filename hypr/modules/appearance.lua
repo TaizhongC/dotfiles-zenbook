@@ -27,6 +27,9 @@ return function()
     dwindle = { preserve_split = true },
     master = { new_status = "master" },
     scrolling = { fullscreen_on_one_column = true },
+    -- Keep XWayland clients, including Horizon, at native pixel resolution
+    -- on the panel's fractional 1.33 scale to avoid compositor blur.
+    xwayland = { force_zero_scaling = true },
     -- Fullscreen is implemented as a compositor-driven resize.  Hyprland
     -- skips that animation unless manual resizes are explicitly enabled.
     misc = {
